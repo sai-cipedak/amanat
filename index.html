@@ -1,136 +1,206 @@
 <!DOCTYPE html>
-
 <html lang="id">
-
 <head>
-
-    <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
-    <title>
-        SAI Cipedak KPI Tracker
-    </title>
-
-    <link
-        rel="stylesheet"
-        href="style.css"
-    >
-
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Dashboard Amanat Muskom 2026 SAI Cipedak" />
+  <title>SAI Cipedak — KPI Tracker</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
-
-
 <body>
-
-<header>
-
-    <h1>
-        SAI Cipedak
-    </h1>
-
-    <p>
-        Amanat Muskom 2026 KPI Tracker
-    </p>
-
-</header>
-
-
-<main>
-
-    <section class="summary">
-
-        <div class="summary-card">
-
-            <span>
-                Total KPI
-            </span>
-
-            <strong id="total-kpis">
-                -
-            </strong>
-
-        </div>
-
-    </section>
-
-
-    <section>
-
-        <h2>
-            KPI
-        </h2>
-
-        <p id="message">
-            Loading data...
+  <header class="site-header">
+    <div class="shell header-inner">
+      <div>
+        <p class="eyebrow">SAI CIPEDAK · AMANAT MUSKOM 2026</p>
+        <h1>KPI Tracker</h1>
+        <p class="header-copy">
+          Transparansi pelaksanaan amanat, capaian KPI, dan bukti progres komunitas.
         </p>
+      </div>
+      <div class="last-updated">
+        <span>Data refreshed</span>
+        <strong id="last-updated">—</strong>
+      </div>
+    </div>
+  </header>
 
+  <main class="shell">
+    <section class="summary-grid" aria-label="Ringkasan">
+      <article class="summary-card">
+        <span class="summary-label">Amanat</span>
+        <strong id="total-mandates">—</strong>
+        <small>Muskom 2026</small>
+      </article>
 
-        <div class="table-wrapper">
+      <article class="summary-card">
+        <span class="summary-label">KPI</span>
+        <strong id="total-kpis">—</strong>
+        <small>KPI resmi</small>
+      </article>
 
-            <table>
+      <article class="summary-card">
+        <span class="summary-label">Metrics</span>
+        <strong id="total-metrics">—</strong>
+        <small>Ukuran turunan</small>
+      </article>
 
-                <thead>
+      <article class="summary-card">
+        <span class="summary-label">Progress Data</span>
+        <strong id="progress-coverage">—</strong>
+        <small id="progress-coverage-note">KPI terukur</small>
+      </article>
 
-                    <tr>
-
-                        <th>
-                            KPI
-                        </th>
-
-                        <th>
-                            Amanat
-                        </th>
-
-                        <th>
-                            Type
-                        </th>
-
-                        <th>
-                            Baseline
-                        </th>
-
-                        <th>
-                            Actual
-                        </th>
-
-                        <th>
-                            Target
-                        </th>
-
-                        <th>
-                            Status
-                        </th>
-
-                    </tr>
-
-                </thead>
-
-
-                <tbody id="kpi-body">
-
-                </tbody>
-
-            </table>
-
-        </div>
-
+      <article class="summary-card summary-card-accent">
+        <span class="summary-label">Measured Progress</span>
+        <strong id="overall-progress">—</strong>
+        <small>Hanya KPI dengan data lengkap</small>
+      </article>
     </section>
 
-</main>
+    <section class="panel">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">PORTFOLIO VIEW</p>
+          <h2>Progress per Cluster</h2>
+        </div>
+        <p class="muted">
+          Progress hanya dihitung bila seluruh metric dalam KPI sudah memiliki data yang dapat dihitung.
+        </p>
+      </div>
+      <div id="cluster-progress" class="cluster-list"></div>
+    </section>
 
+    <section class="panel filters-panel">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">EXPLORE</p>
+          <h2>88 KPI</h2>
+        </div>
+        <span id="result-count" class="result-count">—</span>
+      </div>
 
-<script
-    src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
-</script>
+      <div class="filters">
+        <label>
+          <span>Cari</span>
+          <input id="search-input" type="search" placeholder="KPI, amanat, owner..." />
+        </label>
 
-<script src="config.js"></script>
+        <label>
+          <span>Cluster</span>
+          <select id="cluster-filter">
+            <option value="">Semua cluster</option>
+          </select>
+        </label>
 
-<script src="app.js"></script>
+        <label>
+          <span>KPI Type</span>
+          <select id="type-filter">
+            <option value="">Semua tipe</option>
+            <option value="enabler">Enabler</option>
+            <option value="output">Output</option>
+            <option value="outcome">Outcome</option>
+            <option value="impact">Impact</option>
+          </select>
+        </label>
 
+        <label>
+          <span>Responsibility</span>
+          <select id="responsibility-filter">
+            <option value="">Semua</option>
+            <option value="head_office">Head Office</option>
+            <option value="cipedak">Cipedak</option>
+            <option value="management">Management</option>
+            <option value="ots">OTS</option>
+          </select>
+        </label>
 
+        <label>
+          <span>Data Status</span>
+          <select id="data-filter">
+            <option value="">Semua</option>
+            <option value="measured">Measured</option>
+            <option value="needs_data">Needs Data</option>
+            <option value="needs_target">Needs Target</option>
+          </select>
+        </label>
+
+        <button id="reset-filters" class="secondary-button" type="button">
+          Reset
+        </button>
+      </div>
+    </section>
+
+    <section id="kpi-list" class="kpi-list" aria-live="polite"></section>
+
+    <div id="loading-state" class="state-card">
+      <strong>Memuat data KPI…</strong>
+      <span>Mengambil Amanat, KPI, dan metrics dari Supabase.</span>
+    </div>
+
+    <div id="error-state" class="state-card error-state" hidden>
+      <strong>Dashboard belum dapat memuat data.</strong>
+      <span id="error-message">Periksa konfigurasi Supabase dan Row Level Security.</span>
+    </div>
+  </main>
+
+  <footer>
+    <div class="shell">
+      <span>SAI Cipedak · KPI Tracker</span>
+      <span>Data publik · sumber: Supabase</span>
+    </div>
+  </footer>
+
+  <template id="kpi-template">
+    <article class="kpi-card">
+      <button class="kpi-card-header" type="button" aria-expanded="false">
+        <div class="kpi-heading-main">
+          <div class="kpi-meta-line">
+            <span class="kpi-id"></span>
+            <span class="pill kpi-type"></span>
+            <span class="pill responsibility"></span>
+          </div>
+          <h3 class="kpi-title"></h3>
+          <p class="kpi-mandate"></p>
+        </div>
+
+        <div class="kpi-progress-block">
+          <strong class="kpi-progress-value"></strong>
+          <span class="kpi-data-state"></span>
+          <span class="chevron">⌄</span>
+        </div>
+      </button>
+
+      <div class="progress-track">
+        <div class="progress-bar"></div>
+      </div>
+
+      <div class="kpi-detail" hidden>
+        <div class="detail-grid">
+          <div>
+            <span class="detail-label">Accountable Owner</span>
+            <strong class="owner"></strong>
+          </div>
+          <div>
+            <span class="detail-label">Deadline / Timeframe</span>
+            <strong class="deadline"></strong>
+          </div>
+        </div>
+
+        <div class="metrics-section">
+          <h4>Metrics</h4>
+          <div class="metric-list"></div>
+        </div>
+
+        <div class="evidence-block">
+          <span class="detail-label">Evidence requirement</span>
+          <p class="evidence"></p>
+        </div>
+      </div>
+    </article>
+  </template>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
 </body>
-
 </html>
