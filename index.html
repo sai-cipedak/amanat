@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+
+<html lang="id">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        SAI Cipedak KPI Tracker
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
+
+</head>
+
+
+<body>
+
+<header>
+
+    <h1>
+        SAI Cipedak
+    </h1>
+
+    <p>
+        Amanat Muskom 2026 KPI Tracker
+    </p>
+
+</header>
+
+
+<main>
+
+    <section class="summary">
+
+        <div class="summary-card">
+
+            <span>
+                Total KPI
+            </span>
+
+            <strong id="total-kpis">
+                -
+            </strong>
+
+        </div>
+
+    </section>
+
+
+    <section>
+
+        <h2>
+            KPI
+        </h2>
+
+        <p id="message">
+            Loading data...
+        </p>
+
+
+        <div class="table-wrapper">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            KPI
+                        </th>
+
+                        <th>
+                            Amanat
+                        </th>
+
+                        <th>
+                            Type
+                        </th>
+
+                        <th>
+                            Baseline
+                        </th>
+
+                        <th>
+                            Actual
+                        </th>
+
+                        <th>
+                            Target
+                        </th>
+
+                        <th>
+                            Status
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="kpi-body">
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+</main>
+
+
+<script
+    src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+</script>
+
+<script src="config.js"></script>
+
+<script src="app.js"></script>
+
+
+</body>
+
+</html>
