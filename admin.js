@@ -19,7 +19,6 @@ const els = {
   googleLoginButton: document.getElementById("google-login-button"),
   loginMessage: document.getElementById("login-message"),
   accessDenied: document.getElementById("access-denied"),
-  deniedLogout: document.getElementById("denied-logout-button"),
   adminApp: document.getElementById("admin-app"),
   sessionControls: document.getElementById("session-controls"),
   userName: document.getElementById("user-name"),
@@ -30,6 +29,9 @@ const els = {
   totalMetrics: document.getElementById("admin-total-metrics"),
   draftCount: document.getElementById("admin-draft-count"),
   verifiedCount: document.getElementById("admin-verified-count"),
+  kpiSearch: document.getElementById("kpi-search"),
+  kpiClusterFilter: document.getElementById("kpi-cluster-filter"),
+  kpiFilterCount: document.getElementById("kpi-filter-count"),
   kpiSelect: document.getElementById("kpi-select"),
   metricSelect: document.getElementById("metric-select"),
   workspace: document.getElementById("metric-workspace"),
@@ -433,6 +435,7 @@ function openMetric(metricId) {
   state.selectedKpi = context.kpi;
   state.selectedMetric = context.metric;
 
+  clearKpiFinder();
   els.kpiSelect.value = context.kpi.id;
   populateMetrics(context.kpi);
   els.metricSelect.value = context.metric.id;
@@ -451,6 +454,7 @@ function startEditDraft(update) {
   state.selectedKpi = context.kpi;
   state.selectedMetric = context.metric;
 
+  clearKpiFinder();
   els.kpiSelect.value = context.kpi.id;
   populateMetrics(context.kpi);
   els.metricSelect.value = context.metric.id;
@@ -517,19 +521,98 @@ async function loadAllUpdateCounts() {
   renderMyDrafts();
   renderReviewQueue();
 }
-function populateKpis() {
+function populateKpiFilters() {
+  const clusters = [...new Set(
+    state.kpis
+      .map(kpi => kpi.mandates?.cluster)
+      .filter(Boolean)
+  )].sort((a, b) => a.localeCompare(b, "id"));
+
+  els.kpiClusterFilter.innerHTML =
+    `<option value="">Semua cluster</option>`;
+
+  clusters.forEach(cluster => {
+    const option = document.createElement("option");
+    option.value = cluster;
+    option.textContent = cluster;
+    els.kpiClusterFilter.appendChild(option);
+  });
+}
+
+function getFilteredKpis() {
+  const query = (els.kpiSearch.value || "").trim().toLowerCase();
+  const cluster = els.kpiClusterFilter.value || "";
+
+  return state.kpis.filter(kpi => {
+    const metricNames = (kpi.kpi_metrics || [])
+      .map(metric => metric.metric_name)
+      .filter(Boolean);
+
+    const haystack = [
+      kpi.id,
+      kpi.title,
+      kpi.mandates?.id,
+      kpi.mandates?.title,
+      kpi.mandates?.cluster,
+      ...metricNames
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+
+    return (
+      (!query || haystack.includes(query)) &&
+      (!cluster || kpi.mandates?.cluster === cluster)
+    );
+  });
+}
+
+function renderKpiOptions({ preserveSelection = true } = {}) {
+  const previousValue = preserveSelection ? els.kpiSelect.value : "";
+  const filtered = getFilteredKpis();
+
   els.kpiSelect.innerHTML = `<option value="">Pilih KPI…</option>`;
-  state.kpis.forEach(kpi => {
+
+  filtered.forEach(kpi => {
     const option = document.createElement("option");
     option.value = kpi.id;
     option.textContent = `${kpi.id} · ${kpi.title}`;
     els.kpiSelect.appendChild(option);
   });
+
+  els.kpiFilterCount.textContent =
+    `${filtered.length} dari ${state.kpis.length} KPI ditampilkan`;
+
+  const canPreserve =
+    previousValue &&
+    filtered.some(kpi => kpi.id === previousValue);
+
+  if (canPreserve) {
+    els.kpiSelect.value = previousValue;
+  } else if (previousValue) {
+    state.selectedKpi = null;
+    state.selectedMetric = null;
+    els.metricSelect.innerHTML = `<option value="">Pilih metric…</option>`;
+    els.metricSelect.disabled = true;
+    els.workspace.hidden = true;
+    resetUpdateForm();
+  }
+}
+
+function clearKpiFinder() {
+  els.kpiSearch.value = "";
+  els.kpiClusterFilter.value = "";
+  renderKpiOptions({ preserveSelection: false });
+}
+
+function populateKpis() {
   els.totalKpis.textContent = state.kpis.length;
   els.totalMetrics.textContent = state.kpis.reduce(
     (sum, kpi) => sum + (kpi.kpi_metrics || []).length, 0
   );
 
+  populateKpiFilters();
+  renderKpiOptions({ preserveSelection: false });
   populateReviewClusters();
 }
 
@@ -858,10 +941,17 @@ async function enterAdmin(session) {
 
     if (!profile || !profile.is_active) {
       state.profile = null;
-      els.loginPanel.hidden = true;
-      els.adminApp.hidden = true;
-      els.sessionControls.hidden = true;
-      els.accessDenied.hidden = false;
+
+      // Authentication succeeded at Google, but authorization failed.
+      // Do not keep an unauthorized Supabase session in this browser.
+      await adminSupabase.auth.signOut();
+
+      await exitAdmin();
+      setMessage(
+        els.loginMessage,
+        "Akun Google ini tidak memiliki akses ke Admin Console.",
+        "error"
+      );
       return;
     }
 
@@ -919,8 +1009,12 @@ els.logout.addEventListener("click", async () => {
   await adminSupabase.auth.signOut();
 });
 
-els.deniedLogout.addEventListener("click", async () => {
-  await adminSupabase.auth.signOut();
+els.kpiSearch.addEventListener("input", () => {
+  renderKpiOptions();
+});
+
+els.kpiClusterFilter.addEventListener("change", () => {
+  renderKpiOptions();
 });
 
 els.kpiSelect.addEventListener("change", () => {
