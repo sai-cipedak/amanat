@@ -66,3 +66,162 @@ code{padding:2px 5px;border-radius:5px;background:rgba(0,0,0,.05)}
 @media(max-width:900px){.summary-grid{grid-template-columns:repeat(2,1fr)}.workspace-grid{grid-template-columns:1fr}}
 @media(max-width:650px){.shell{width:min(100% - 22px,1180px)}.topbar-inner,.section-heading{align-items:stretch;flex-direction:column}
 .session-controls{justify-content:space-between}.session-user{text-align:left}.login-form,.selector-grid,.form-grid,.metric-facts{grid-template-columns:1fr}.form-grid .wide{grid-column:auto}}
+
+
+/* ============================================================
+   Phase 4B — operational queues and draft editing
+   ============================================================ */
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.dashboard-link {
+  color: rgba(255,255,255,.78);
+  font-size: 12px;
+  font-weight: 800;
+  text-decoration: none;
+}
+.dashboard-link:hover { color:#fff; text-decoration:underline; }
+
+.phase4b-panel {
+  margin-top: 20px;
+}
+
+.queue-toolbar {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) minmax(180px, 280px);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.queue-toolbar.one-column {
+  grid-template-columns: minmax(240px, 1fr);
+}
+
+.queue-list {
+  display: grid;
+  gap: 10px;
+}
+
+.queue-card {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--soft);
+  overflow: hidden;
+}
+
+.queue-card-main {
+  padding: 15px;
+}
+
+.queue-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.queue-card-id {
+  margin: 0 0 3px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .04em;
+}
+
+.queue-card h3 {
+  margin: 0 0 4px;
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.queue-kpi {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.queue-value {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.queue-value strong,
+.queue-value span { display:block; }
+
+.queue-value strong { font-size:15px; }
+
+.queue-value span {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.queue-note {
+  margin: 11px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.queue-meta {
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.queue-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  padding: 10px 15px;
+  border-top: 1px solid var(--line);
+  background: #fff;
+}
+
+.small-button {
+  min-height: 32px;
+  border-radius: 8px;
+  padding: 0 10px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.open-button,
+.edit-button {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--text);
+}
+
+.queue-empty {
+  padding: 30px 14px;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  color: var(--muted);
+  text-align: center;
+  font-size: 13px;
+}
+
+@media (max-width:650px) {
+  .topbar-actions {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .queue-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .queue-card-top {
+    flex-direction: column;
+  }
+
+  .queue-value {
+    text-align: left;
+  }
+}
