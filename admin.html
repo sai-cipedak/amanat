@@ -15,12 +15,16 @@
         <h1>Admin Console</h1>
       </div>
 
-      <div id="session-controls" class="session-controls" hidden>
+      <div class="topbar-actions">
+        <a href="index.html" class="dashboard-link">Public Dashboard ↗</a>
+
+        <div id="session-controls" class="session-controls" hidden>
         <div class="session-user">
           <strong id="user-name">—</strong>
           <span id="user-role">—</span>
         </div>
         <button id="logout-button" class="secondary-button" type="button">Sign out</button>
+        </div>
       </div>
     </div>
   </header>
@@ -142,12 +146,13 @@
             <div class="section-heading compact">
               <div>
                 <p class="eyebrow">NEW OBSERVATION</p>
-                <h2>Submit Update</h2>
+                <h2 id="update-form-title">Submit Update</h2>
               </div>
-              <span class="status-tag">Draft only</span>
+              <span id="form-mode-tag" class="status-tag">New Draft</span>
             </div>
 
             <form id="update-form" class="update-form">
+              <input id="editing-update-id" type="hidden" />
               <div class="form-grid">
                 <label>
                   <span>As of date *</span>
@@ -180,7 +185,8 @@
               </div>
 
               <div class="form-actions">
-                <button type="submit" class="primary-button">Submit as Draft</button>
+                <button id="submit-update-button" type="submit" class="primary-button">Submit as Draft</button>
+                <button id="cancel-edit-button" type="button" class="secondary-button" hidden>Cancel Edit</button>
                 <span id="update-message" class="form-message"></span>
               </div>
             </form>
@@ -202,6 +208,53 @@
             </div>
           </section>
         </aside>
+      </section>
+
+      <section id="my-drafts-panel" class="panel phase4b-panel">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">YOUR WORK</p>
+            <h2>My Drafts</h2>
+          </div>
+          <span id="my-draft-count" class="count-badge">0</span>
+        </div>
+
+        <div class="queue-toolbar one-column">
+          <label>
+            <span>Search my drafts</span>
+            <input id="my-drafts-search" type="search"
+                   placeholder="Metric ID, KPI, metric, note..." />
+          </label>
+        </div>
+
+        <div id="my-drafts-list" class="queue-list"></div>
+      </section>
+
+      <section id="review-queue-panel" class="panel phase4b-panel" hidden>
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">APPROVAL WORKFLOW</p>
+            <h2>Review Queue</h2>
+          </div>
+          <span id="review-queue-count" class="count-badge">0</span>
+        </div>
+
+        <div class="queue-toolbar">
+          <label>
+            <span>Search queue</span>
+            <input id="review-search" type="search"
+                   placeholder="Metric ID, KPI, submitter, note..." />
+          </label>
+
+          <label>
+            <span>Cluster</span>
+            <select id="review-cluster-filter">
+              <option value="">Semua cluster</option>
+            </select>
+          </label>
+        </div>
+
+        <div id="review-list" class="queue-list"></div>
       </section>
     </div>
 
