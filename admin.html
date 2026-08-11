@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>Admin · SAI Cipedak KPI Tracker</title>
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="shell topbar-inner">
+      <div>
+        <p class="eyebrow">SAI CIPEDAK · KPI TRACKER</p>
+        <h1>Admin Console</h1>
+      </div>
+
+      <div id="session-controls" class="session-controls" hidden>
+        <div class="session-user">
+          <strong id="user-name">—</strong>
+          <span id="user-role">—</span>
+        </div>
+        <button id="logout-button" class="secondary-button" type="button">Sign out</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="shell main-shell">
+    <section id="login-panel" class="auth-card">
+      <p class="eyebrow">AUTHENTICATION</p>
+      <h2>Sign in via email</h2>
+      <p>
+        Masukkan email yang sudah diizinkan sebagai admin KPI Tracker.
+        Link login akan dikirim ke email tersebut.
+      </p>
+
+      <form id="login-form" class="login-form">
+        <label>
+          <span>Email</span>
+          <input id="login-email" type="email" autocomplete="email"
+                 placeholder="nama@email.com" required />
+        </label>
+        <button type="submit" class="primary-button">Send magic link</button>
+      </form>
+
+      <p id="login-message" class="form-message"></p>
+    </section>
+
+    <section id="access-denied" class="auth-card error-card" hidden>
+      <p class="eyebrow">ACCESS DENIED</p>
+      <h2>Email ini belum terdaftar sebagai admin</h2>
+      <p>
+        Akun berhasil login ke Supabase, tetapi email belum ada di
+        <code>admin_users</code> atau sedang nonaktif.
+      </p>
+      <button id="denied-logout-button" class="secondary-button" type="button">
+        Sign out
+      </button>
+    </section>
+
+    <div id="admin-app" hidden>
+      <section class="summary-grid">
+        <article class="summary-card">
+          <span>KPIs</span>
+          <strong id="admin-total-kpis">—</strong>
+          <small>official KPI</small>
+        </article>
+        <article class="summary-card">
+          <span>Metrics</span>
+          <strong id="admin-total-metrics">—</strong>
+          <small>child metrics</small>
+        </article>
+        <article class="summary-card">
+          <span>Draft Updates</span>
+          <strong id="admin-draft-count">—</strong>
+          <small>awaiting review</small>
+        </article>
+        <article class="summary-card">
+          <span>Verified Updates</span>
+          <strong id="admin-verified-count">—</strong>
+          <small>history rows</small>
+        </article>
+      </section>
+
+      <section class="panel">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">SELECT METRIC</p>
+            <h2>Metric Update</h2>
+          </div>
+          <p class="muted">
+            Pilih KPI dan metric. Metric setup bersifat read-only di Phase 4.
+          </p>
+        </div>
+
+        <div class="selector-grid">
+          <label>
+            <span>KPI</span>
+            <select id="kpi-select">
+              <option value="">Pilih KPI…</option>
+            </select>
+          </label>
+
+          <label>
+            <span>Metric</span>
+            <select id="metric-select" disabled>
+              <option value="">Pilih metric…</option>
+            </select>
+          </label>
+        </div>
+      </section>
+
+      <section id="metric-workspace" class="workspace-grid" hidden>
+        <div class="workspace-main">
+          <section class="panel metric-overview">
+            <div class="metric-heading">
+              <div>
+                <p id="metric-id" class="metric-id">—</p>
+                <h2 id="metric-name">—</h2>
+              </div>
+              <span id="metric-state" class="pill">—</span>
+            </div>
+
+            <p id="metric-kpi-title" class="muted"></p>
+
+            <div class="metric-facts">
+              <div><span>Method</span><strong id="metric-method">—</strong></div>
+              <div><span>Baseline</span><strong id="metric-baseline">—</strong></div>
+              <div><span>Target</span><strong id="metric-target">—</strong></div>
+              <div><span>Current Actual</span><strong id="metric-current">—</strong></div>
+              <div><span>As of</span><strong id="metric-current-date">—</strong></div>
+              <div><span>Reporting</span><strong id="metric-frequency">—</strong></div>
+            </div>
+
+            <div class="definition-block">
+              <span>Target definition</span>
+              <p id="metric-target-description">—</p>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="section-heading compact">
+              <div>
+                <p class="eyebrow">NEW OBSERVATION</p>
+                <h2>Submit Update</h2>
+              </div>
+              <span class="status-tag">Draft only</span>
+            </div>
+
+            <form id="update-form" class="update-form">
+              <div class="form-grid">
+                <label>
+                  <span>As of date *</span>
+                  <input id="update-date" type="date" required />
+                </label>
+
+                <label>
+                  <span>Actual</span>
+                  <input id="update-actual" type="number" step="any" />
+                </label>
+
+                <label>
+                  <span>Progress override %</span>
+                  <input id="update-progress" type="number"
+                         min="0" max="100" step="0.01" placeholder="Optional" />
+                </label>
+
+                <label class="wide">
+                  <span>Public evidence URL</span>
+                  <input id="update-evidence" type="url" placeholder="https://..." />
+                  <small>Hanya evidence yang aman dilihat publik.</small>
+                </label>
+
+                <label class="wide">
+                  <span>Update note *</span>
+                  <textarea id="update-note" rows="4"
+                    placeholder="Apa yang berubah, sumber datanya apa, dan konteks pentingnya."
+                    required></textarea>
+                </label>
+              </div>
+
+              <div class="form-actions">
+                <button type="submit" class="primary-button">Submit as Draft</button>
+                <span id="update-message" class="form-message"></span>
+              </div>
+            </form>
+          </section>
+        </div>
+
+        <aside class="workspace-side">
+          <section class="panel">
+            <div class="section-heading compact">
+              <div>
+                <p class="eyebrow">HISTORY</p>
+                <h2>Metric Updates</h2>
+              </div>
+              <span id="history-count" class="count-badge">0</span>
+            </div>
+
+            <div id="history-list" class="history-list">
+              <p class="empty-state">Belum ada update.</p>
+            </div>
+          </section>
+        </aside>
+      </section>
+    </div>
+
+    <div id="page-loading" class="state-card" hidden>
+      <strong>Loading admin console…</strong>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>
