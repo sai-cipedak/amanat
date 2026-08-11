@@ -275,9 +275,11 @@ function renderSummary() {
   const mandateIds = new Set(state.kpis.map(kpi => kpi.mandate_id));
   const metrics = state.kpis.flatMap(kpi => kpi.kpi_metrics || []);
 
-  const measured = state.kpis
-    .map(kpi => kpiProgress(kpi))
-    .filter(value => value !== null);
+  // Portfolio progress uses ALL official KPIs as the denominator.
+  // A KPI without measurable progress contributes 0% to the aggregate,
+  // while coverage remains visible separately.
+  const progressValues = state.kpis.map(kpi => kpiProgress(kpi));
+  const measured = progressValues.filter(value => value !== null);
 
   els.totalMandates.textContent = mandateIds.size;
   els.totalKpis.textContent = state.kpis.length;
@@ -285,12 +287,16 @@ function renderSummary() {
   els.progressCoverage.textContent = `${measured.length}/${state.kpis.length}`;
   els.progressCoverageNote.textContent = "KPI punya progress data";
 
-  if (measured.length) {
-    const average = measured.reduce((a, b) => a + b, 0) / measured.length;
-    els.overallProgress.textContent = `${Math.round(average)}%`;
-  } else {
-    els.overallProgress.textContent = "—";
-  }
+  const totalProgress = progressValues.reduce(
+    (sum, value) => sum + (value ?? 0),
+    0
+  );
+
+  const overallProgress = state.kpis.length
+    ? totalProgress / state.kpis.length
+    : 0;
+
+  els.overallProgress.textContent = `${Math.round(overallProgress)}%`;
 
   const timestamps = [
     ...state.kpis.map(k => k.updated_at),
@@ -326,13 +332,21 @@ function renderClusters() {
   [...map.entries()]
     .sort(([a], [b]) => a.localeCompare(b, "id"))
     .forEach(([cluster, kpis]) => {
-      const progressValues = kpis
-        .map(kpi => kpiProgress(kpi))
-        .filter(value => value !== null);
+      // Cluster progress uses every KPI in the cluster as the denominator.
+      // Unmeasured KPI contributes 0% until it has measurable data.
+      const allProgressValues = kpis.map(kpi => kpiProgress(kpi));
+      const measuredProgressValues = allProgressValues.filter(
+        value => value !== null
+      );
 
-      const progress = progressValues.length
-        ? progressValues.reduce((a, b) => a + b, 0) / progressValues.length
-        : null;
+      const totalProgress = allProgressValues.reduce(
+        (sum, value) => sum + (value ?? 0),
+        0
+      );
+
+      const progress = kpis.length
+        ? totalProgress / kpis.length
+        : 0;
 
       const row = document.createElement("div");
       row.className = "cluster-row";
@@ -341,7 +355,7 @@ function renderClusters() {
       name.className = "cluster-name";
       name.innerHTML = `
         <strong>${escapeHtml(cluster)}</strong>
-        <small>${kpis.length} KPI · ${progressValues.length} terukur</small>
+        <small>${kpis.length} KPI · ${measuredProgressValues.length} terukur</small>
       `;
 
       const track = document.createElement("div");
@@ -355,7 +369,7 @@ function renderClusters() {
       value.className = "cluster-value";
       value.innerHTML = `
         <strong>${formatProgress(progress)}</strong>
-        <small>${progress === null ? "Needs data" : "measured progress"}</small>
+        <small>overall progress</small>
       `;
 
       row.append(name, track, value);
