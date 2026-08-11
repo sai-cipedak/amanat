@@ -55,9 +55,7 @@
         Akun berhasil login ke Supabase, tetapi email belum ada di
         <code>admin_users</code> atau sedang nonaktif.
       </p>
-      <button id="denied-logout-button" class="secondary-button" type="button">
-        Sign out
-      </button>
+      <p class="muted">Session login akan ditutup otomatis.</p>
     </section>
 
     <div id="admin-app" hidden>
@@ -95,12 +93,28 @@
           </p>
         </div>
 
-        <div class="selector-grid">
+        <div class="kpi-filter-grid">
+          <label>
+            <span>Cari KPI</span>
+            <input id="kpi-search" type="search"
+                   placeholder="Cari kata, KPI ID, amanat, metric..." />
+          </label>
+
+          <label>
+            <span>Cluster</span>
+            <select id="kpi-cluster-filter">
+              <option value="">Semua cluster</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="selector-grid selector-grid-secondary">
           <label>
             <span>KPI</span>
             <select id="kpi-select">
               <option value="">Pilih KPI…</option>
             </select>
+            <small id="kpi-filter-count">88 KPI tersedia</small>
           </label>
 
           <label>
