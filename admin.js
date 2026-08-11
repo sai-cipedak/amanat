@@ -9,14 +9,14 @@ const state = {
   kpis: [],
   updates: [],
   allUpdates: [],
+  adminUsers: [],
   selectedKpi: null,
   selectedMetric: null
 };
 
 const els = {
   loginPanel: document.getElementById("login-panel"),
-  loginForm: document.getElementById("login-form"),
-  loginEmail: document.getElementById("login-email"),
+  googleLoginButton: document.getElementById("google-login-button"),
   loginMessage: document.getElementById("login-message"),
   accessDenied: document.getElementById("access-denied"),
   deniedLogout: document.getElementById("denied-logout-button"),
@@ -66,7 +66,16 @@ const els = {
   reviewQueueCount: document.getElementById("review-queue-count"),
   reviewSearch: document.getElementById("review-search"),
   reviewClusterFilter: document.getElementById("review-cluster-filter"),
-  reviewList: document.getElementById("review-list")
+  reviewList: document.getElementById("review-list"),
+  userManagementPanel: document.getElementById("user-management-panel"),
+  activeUserCount: document.getElementById("active-user-count"),
+  addUserForm: document.getElementById("add-user-form"),
+  newUserEmail: document.getElementById("new-user-email"),
+  newUserName: document.getElementById("new-user-name"),
+  newUserRole: document.getElementById("new-user-role"),
+  userFormMessage: document.getElementById("user-form-message"),
+  userSearch: document.getElementById("user-search"),
+  userList: document.getElementById("user-list")
 };
 
 function escapeHtml(value) {
@@ -144,11 +153,11 @@ function metricProgress(metric) {
   }
 }
 
-async function requestMagicLink(email) {
+async function signInWithGoogle() {
   const redirectTo = `${window.location.origin}${window.location.pathname}`;
-  const { error } = await adminSupabase.auth.signInWithOtp({
-    email,
-    options: { emailRedirectTo: redirectTo, shouldCreateUser: false }
+  const { error } = await adminSupabase.auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo }
   });
   if (error) throw error;
 }
@@ -758,6 +767,90 @@ async function reviewUpdate(id, status) {
   }
 }
 
+
+async function loadAdminUsers() {
+  if (state.profile?.role !== "admin") {
+    state.adminUsers = [];
+    els.userManagementPanel.hidden = true;
+    return;
+  }
+  const { data, error } = await adminSupabase
+    .from("admin_users")
+    .select("email,display_name,role,is_active,created_at,updated_at,updated_by")
+    .order("is_active", { ascending: false })
+    .order("role", { ascending: true })
+    .order("email", { ascending: true });
+  if (error) throw error;
+  state.adminUsers = data || [];
+  els.userManagementPanel.hidden = false;
+  renderAdminUsers();
+}
+
+function renderAdminUsers() {
+  const q = (els.userSearch.value || "").trim().toLowerCase();
+  const self = (state.session?.user?.email || "").toLowerCase();
+  const rows = state.adminUsers.filter(user => {
+    const haystack = [user.email,user.display_name,user.role,user.is_active?"active":"inactive"]
+      .filter(Boolean).join(" ").toLowerCase();
+    return !q || haystack.includes(q);
+  });
+  els.activeUserCount.textContent = state.adminUsers.filter(u => u.is_active).length;
+  if (!rows.length) {
+    els.userList.innerHTML = `<div class="queue-empty">Tidak ada user yang cocok.</div>`;
+    return;
+  }
+  els.userList.innerHTML = rows.map(user => {
+    const isSelf = user.email.toLowerCase() === self;
+    return `<article class="user-row">
+      <div class="user-identity"><strong>${escapeHtml(user.display_name || user.email)}${isSelf?`<span class="user-self-tag">YOU</span>`:""}</strong><span>${escapeHtml(user.email)}</span></div>
+      <select class="user-role-select" data-user-role="${escapeHtml(user.email)}">
+        <option value="editor" ${user.role==="editor"?"selected":""}>Editor</option>
+        <option value="reviewer" ${user.role==="reviewer"?"selected":""}>Reviewer</option>
+        <option value="admin" ${user.role==="admin"?"selected":""}>Admin</option>
+      </select>
+      <div class="user-actions"><button type="button" class="user-status-button ${user.is_active?"active":"inactive"}" data-user-status="${escapeHtml(user.email)}" data-current-status="${user.is_active?"true":"false"}">${user.is_active?"Active":"Inactive"}</button></div>
+    </article>`;
+  }).join("");
+  els.userList.querySelectorAll("[data-user-role]").forEach(select => {
+    select.addEventListener("change", async () => updateAdminUser(select.dataset.userRole,{role:select.value}));
+  });
+  els.userList.querySelectorAll("[data-user-status]").forEach(button => {
+    button.addEventListener("click", async () => {
+      const current = button.dataset.currentStatus === "true";
+      if (!window.confirm(`${current?"Deactivate":"Reactivate"} ${button.dataset.userStatus}?`)) return;
+      await updateAdminUser(button.dataset.userStatus,{is_active:!current});
+    });
+  });
+}
+
+async function addAdminUser() {
+  const email = els.newUserEmail.value.trim().toLowerCase();
+  const { error } = await adminSupabase.from("admin_users").insert({
+    email,
+    display_name: els.newUserName.value.trim() || null,
+    role: els.newUserRole.value,
+    is_active: true
+  });
+  if (error) throw error;
+  els.newUserEmail.value=""; els.newUserName.value=""; els.newUserRole.value="editor";
+  await loadAdminUsers();
+}
+
+async function updateAdminUser(email, changes) {
+  const { error } = await adminSupabase.from("admin_users").update(changes).eq("email",email);
+  if (error) { window.alert(`User update gagal: ${error.message}`); await loadAdminUsers(); return; }
+  const self = (state.session?.user?.email || "").toLowerCase();
+  if (email.toLowerCase() === self) {
+    const refreshed = await resolveProfile(state.session);
+    if (!refreshed || !refreshed.is_active) { await adminSupabase.auth.signOut(); return; }
+    state.profile = refreshed;
+    els.userRole.textContent = refreshed.role;
+    els.reviewQueuePanel.hidden = !["reviewer","admin"].includes(refreshed.role);
+    if (refreshed.role !== "admin") { els.userManagementPanel.hidden = true; return; }
+  }
+  await loadAdminUsers();
+}
+
 async function enterAdmin(session) {
   setLoading(true);
   try {
@@ -789,6 +882,8 @@ async function enterAdmin(session) {
     els.reviewQueuePanel.hidden = !roleCanReview();
     renderMyDrafts();
     renderReviewQueue();
+    if (profile.role === "admin") await loadAdminUsers();
+    else els.userManagementPanel.hidden = true;
   } catch (error) {
     console.error(error);
     window.alert(`Admin console gagal dimuat: ${error.message}`);
@@ -803,6 +898,7 @@ async function exitAdmin() {
   state.kpis = [];
   state.updates = [];
   state.allUpdates = [];
+  state.adminUsers = [];
   state.selectedKpi = null;
   state.selectedMetric = null;
 
@@ -813,19 +909,10 @@ async function exitAdmin() {
   els.loginPanel.hidden = false;
 }
 
-els.loginForm.addEventListener("submit", async event => {
-  event.preventDefault();
-  setMessage(els.loginMessage, "Mengirim magic link…");
-  try {
-    await requestMagicLink(els.loginEmail.value.trim());
-    setMessage(
-      els.loginMessage,
-      "Magic link terkirim. Buka email dan klik link untuk masuk.",
-      "success"
-    );
-  } catch (error) {
-    setMessage(els.loginMessage, error.message, "error");
-  }
+els.googleLoginButton.addEventListener("click", async () => {
+  setMessage(els.loginMessage, "Redirecting to Google…");
+  try { await signInWithGoogle(); }
+  catch (error) { setMessage(els.loginMessage, error.message, "error"); }
 });
 
 els.logout.addEventListener("click", async () => {
@@ -883,6 +970,19 @@ els.cancelEditButton.addEventListener("click", () => {
 els.myDraftsSearch.addEventListener("input", renderMyDrafts);
 els.reviewSearch.addEventListener("input", renderReviewQueue);
 els.reviewClusterFilter.addEventListener("change", renderReviewQueue);
+
+
+els.addUserForm.addEventListener("submit", async event => {
+  event.preventDefault();
+  setMessage(els.userFormMessage,"Adding user…");
+  try {
+    await addAdminUser();
+    setMessage(els.userFormMessage,"User ditambahkan. User bisa login via Google dengan email tersebut.","success");
+  } catch (error) {
+    setMessage(els.userFormMessage,error.message,"error");
+  }
+});
+els.userSearch.addEventListener("input", renderAdminUsers);
 
 adminSupabase.auth.onAuthStateChange(async (_event, session) => {
   state.session = session;
