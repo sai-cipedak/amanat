@@ -1,6 +1,17 @@
+// Public dashboard must always behave as an anonymous reader.
+// It intentionally ignores any Supabase Auth session that may exist
+// in the same browser from /admin.html.
 const supabaseClient = supabase.createClient(
   SUPABASE_URL,
-  SUPABASE_PUBLISHABLE_KEY
+  SUPABASE_PUBLISHABLE_KEY,
+  {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+      storageKey: "sai-kpi-public-anon"
+    }
+  }
 );
 
 const state = {
