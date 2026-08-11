@@ -8,6 +8,7 @@ const state = {
   profile: null,
   kpis: [],
   updates: [],
+  allUpdates: [],
   selectedKpi: null,
   selectedMetric: null
 };
@@ -44,6 +45,11 @@ const els = {
   metricFrequency: document.getElementById("metric-frequency"),
   metricTargetDescription: document.getElementById("metric-target-description"),
   updateForm: document.getElementById("update-form"),
+  editingUpdateId: document.getElementById("editing-update-id"),
+  updateFormTitle: document.getElementById("update-form-title"),
+  formModeTag: document.getElementById("form-mode-tag"),
+  submitUpdateButton: document.getElementById("submit-update-button"),
+  cancelEditButton: document.getElementById("cancel-edit-button"),
   updateDate: document.getElementById("update-date"),
   updateActual: document.getElementById("update-actual"),
   updateProgress: document.getElementById("update-progress"),
@@ -51,7 +57,16 @@ const els = {
   updateNote: document.getElementById("update-note"),
   updateMessage: document.getElementById("update-message"),
   historyCount: document.getElementById("history-count"),
-  historyList: document.getElementById("history-list")
+  historyList: document.getElementById("history-list"),
+  myDraftsPanel: document.getElementById("my-drafts-panel"),
+  myDraftCount: document.getElementById("my-draft-count"),
+  myDraftsSearch: document.getElementById("my-drafts-search"),
+  myDraftsList: document.getElementById("my-drafts-list"),
+  reviewQueuePanel: document.getElementById("review-queue-panel"),
+  reviewQueueCount: document.getElementById("review-queue-count"),
+  reviewSearch: document.getElementById("review-search"),
+  reviewClusterFilter: document.getElementById("review-cluster-filter"),
+  reviewList: document.getElementById("review-list")
 };
 
 function escapeHtml(value) {
@@ -181,16 +196,318 @@ async function loadReferenceData() {
   });
 }
 
+
+function findMetricContext(metricId) {
+  for (const kpi of state.kpis) {
+    const metric = (kpi.kpi_metrics || []).find(m => m.id === metricId);
+    if (metric) {
+      return {
+        kpi,
+        metric,
+        cluster: kpi.mandates?.cluster || "Unclassified"
+      };
+    }
+  }
+  return null;
+}
+
+function updateValueLabel(update) {
+  if (update.actual !== null && update.actual !== undefined) {
+    return `Actual ${formatNumber(update.actual)}`;
+  }
+  if (update.progress_pct !== null && update.progress_pct !== undefined) {
+    return `Progress ${formatNumber(update.progress_pct)}%`;
+  }
+  return "No numeric value";
+}
+
+function resetUpdateForm() {
+  els.editingUpdateId.value = "";
+  els.updateFormTitle.textContent = "Submit Update";
+  els.formModeTag.textContent = "New Draft";
+  els.submitUpdateButton.textContent = "Submit as Draft";
+  els.cancelEditButton.hidden = true;
+  els.updateDate.value = new Date().toISOString().slice(0, 10);
+  els.updateActual.value = "";
+  els.updateProgress.value = "";
+  els.updateEvidence.value = "";
+  els.updateNote.value = "";
+  setMessage(els.updateMessage, "");
+}
+
+function populateReviewClusters() {
+  const clusters = [...new Set(
+    state.kpis.map(k => k.mandates?.cluster).filter(Boolean)
+  )].sort((a, b) => a.localeCompare(b, "id"));
+
+  els.reviewClusterFilter.innerHTML =
+    `<option value="">Semua cluster</option>`;
+
+  clusters.forEach(cluster => {
+    const option = document.createElement("option");
+    option.value = cluster;
+    option.textContent = cluster;
+    els.reviewClusterFilter.appendChild(option);
+  });
+}
+
+function queueCardHtml(update, mode) {
+  const context = findMetricContext(update.metric_id);
+  if (!context) return "";
+
+  const evidence = update.public_evidence_url
+    ? `<a class="evidence-link" href="${escapeHtml(update.public_evidence_url)}"
+         target="_blank" rel="noopener noreferrer">Public evidence ↗</a>`
+    : "";
+
+  const ownDraft =
+    update.verification_status === "draft" &&
+    update.created_by === state.session?.user?.id;
+
+  const editButton = mode === "mine" && ownDraft
+    ? `<button class="small-button edit-button" type="button"
+         data-edit="${update.id}">Edit Draft</button>`
+    : "";
+
+  const reviewButtons = mode === "review" && roleCanReview()
+    ? `<button class="small-button verify-button" type="button"
+         data-review="verified" data-id="${update.id}">Verify</button>
+       <button class="small-button reject-button" type="button"
+         data-review="rejected" data-id="${update.id}">Reject</button>`
+    : "";
+
+  return `
+    <article class="queue-card">
+      <div class="queue-card-main">
+        <div class="queue-card-top">
+          <div>
+            <p class="queue-card-id">
+              ${escapeHtml(update.metric_id)} · ${escapeHtml(context.cluster)}
+            </p>
+            <h3>${escapeHtml(context.metric.metric_name)}</h3>
+            <p class="queue-kpi">
+              ${escapeHtml(context.kpi.id)} · ${escapeHtml(context.kpi.title)}
+            </p>
+          </div>
+
+          <div class="queue-value">
+            <strong>${escapeHtml(updateValueLabel(update))}</strong>
+            <span>As of ${escapeHtml(formatDate(update.as_of_date))}</span>
+          </div>
+        </div>
+
+        <p class="queue-note">${escapeHtml(update.update_note || "—")}</p>
+        ${evidence}
+
+        <div class="queue-meta">
+          Submitted by ${escapeHtml(update.submitted_by || "—")}
+          · ${escapeHtml(formatDateTime(update.created_at))}
+        </div>
+      </div>
+
+      <div class="queue-actions">
+        <button class="small-button open-button" type="button"
+          data-open-metric="${escapeHtml(update.metric_id)}">Open Metric</button>
+        ${editButton}
+        ${reviewButtons}
+      </div>
+    </article>
+  `;
+}
+
+function bindQueueActions(container) {
+  container.querySelectorAll("[data-open-metric]").forEach(button => {
+    button.addEventListener("click", () => {
+      openMetric(button.dataset.openMetric);
+    });
+  });
+
+  container.querySelectorAll("[data-edit]").forEach(button => {
+    button.addEventListener("click", () => {
+      const update = state.allUpdates.find(
+        row => row.id === Number(button.dataset.edit)
+      );
+      if (update) startEditDraft(update);
+    });
+  });
+
+  container.querySelectorAll("[data-review]").forEach(button => {
+    button.addEventListener("click", async () => {
+      await reviewUpdate(
+        Number(button.dataset.id),
+        button.dataset.review
+      );
+    });
+  });
+}
+
+function renderMyDrafts() {
+  const q = (els.myDraftsSearch.value || "").trim().toLowerCase();
+  const myUserId = state.session?.user?.id;
+
+  let rows = state.allUpdates.filter(update =>
+    update.verification_status === "draft" &&
+    update.created_by === myUserId
+  );
+
+  if (q) {
+    rows = rows.filter(update => {
+      const context = findMetricContext(update.metric_id);
+      const haystack = [
+        update.metric_id,
+        update.update_note,
+        context?.metric?.metric_name,
+        context?.kpi?.id,
+        context?.kpi?.title,
+        context?.cluster
+      ].filter(Boolean).join(" ").toLowerCase();
+
+      return haystack.includes(q);
+    });
+  }
+
+  els.myDraftCount.textContent = rows.length;
+  els.myDraftsList.innerHTML = rows.length
+    ? rows.map(update => queueCardHtml(update, "mine")).join("")
+    : `<div class="queue-empty">Tidak ada draft milik lu.</div>`;
+
+  bindQueueActions(els.myDraftsList);
+}
+
+function renderReviewQueue() {
+  if (!roleCanReview()) {
+    els.reviewQueuePanel.hidden = true;
+    return;
+  }
+
+  els.reviewQueuePanel.hidden = false;
+
+  const q = (els.reviewSearch.value || "").trim().toLowerCase();
+  const cluster = els.reviewClusterFilter.value || "";
+
+  let rows = state.allUpdates.filter(
+    update => update.verification_status === "draft"
+  );
+
+  rows = rows.filter(update => {
+    const context = findMetricContext(update.metric_id);
+    if (!context) return false;
+
+    const haystack = [
+      update.metric_id,
+      update.submitted_by,
+      update.update_note,
+      context.metric.metric_name,
+      context.kpi.id,
+      context.kpi.title,
+      context.cluster
+    ].filter(Boolean).join(" ").toLowerCase();
+
+    return (
+      (!q || haystack.includes(q)) &&
+      (!cluster || context.cluster === cluster)
+    );
+  });
+
+  els.reviewQueueCount.textContent = rows.length;
+  els.reviewList.innerHTML = rows.length
+    ? rows.map(update => queueCardHtml(update, "review")).join("")
+    : `<div class="queue-empty">Tidak ada draft yang menunggu review.</div>`;
+
+  bindQueueActions(els.reviewList);
+}
+
+function openMetric(metricId) {
+  const context = findMetricContext(metricId);
+  if (!context) return;
+
+  state.selectedKpi = context.kpi;
+  state.selectedMetric = context.metric;
+
+  els.kpiSelect.value = context.kpi.id;
+  populateMetrics(context.kpi);
+  els.metricSelect.value = context.metric.id;
+
+  resetUpdateForm();
+  renderMetric(context.metric);
+  loadHistory(context.metric.id);
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function startEditDraft(update) {
+  const context = findMetricContext(update.metric_id);
+  if (!context) return;
+
+  state.selectedKpi = context.kpi;
+  state.selectedMetric = context.metric;
+
+  els.kpiSelect.value = context.kpi.id;
+  populateMetrics(context.kpi);
+  els.metricSelect.value = context.metric.id;
+
+  renderMetric(context.metric);
+
+  els.editingUpdateId.value = String(update.id);
+  els.updateFormTitle.textContent = "Edit Draft";
+  els.formModeTag.textContent = `Draft #${update.id}`;
+  els.submitUpdateButton.textContent = "Save Draft";
+  els.cancelEditButton.hidden = false;
+
+  els.updateDate.value = update.as_of_date || "";
+  els.updateActual.value =
+    update.actual === null || update.actual === undefined ? "" : update.actual;
+  els.updateProgress.value =
+    update.progress_pct === null || update.progress_pct === undefined
+      ? ""
+      : update.progress_pct;
+  els.updateEvidence.value = update.public_evidence_url || "";
+  els.updateNote.value = update.update_note || "";
+
+  loadHistory(context.metric.id);
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
 async function loadAllUpdateCounts() {
   const { data, error } = await adminSupabase
     .from("metric_updates")
-    .select("id, verification_status");
-  if (error) throw error;
-  const rows = data || [];
-  els.draftCount.textContent = rows.filter(r => r.verification_status === "draft").length;
-  els.verifiedCount.textContent = rows.filter(r => r.verification_status === "verified").length;
-}
+    .select(`
+      id,
+      metric_id,
+      as_of_date,
+      actual,
+      progress_pct,
+      public_evidence_url,
+      update_note,
+      verification_status,
+      submitted_by,
+      verified_by,
+      verified_at,
+      reviewed_by,
+      reviewed_at,
+      review_note,
+      created_by,
+      created_at
+    `)
+    .order("created_at", { ascending: false });
 
+  if (error) throw error;
+
+  state.allUpdates = data || [];
+
+  const drafts = state.allUpdates.filter(
+    row => row.verification_status === "draft"
+  );
+  const verified = state.allUpdates.filter(
+    row => row.verification_status === "verified"
+  );
+
+  els.draftCount.textContent = drafts.length;
+  els.verifiedCount.textContent = verified.length;
+
+  renderMyDrafts();
+  renderReviewQueue();
+}
 function populateKpis() {
   els.kpiSelect.innerHTML = `<option value="">Pilih KPI…</option>`;
   state.kpis.forEach(kpi => {
@@ -203,6 +520,8 @@ function populateKpis() {
   els.totalMetrics.textContent = state.kpis.reduce(
     (sum, kpi) => sum + (kpi.kpi_metrics || []).length, 0
   );
+
+  populateReviewClusters();
 }
 
 function populateMetrics(kpi) {
@@ -239,8 +558,9 @@ function renderMetric(metric) {
   const progress = metricProgress(metric);
   els.metricState.textContent = progress === null ? "Needs Data" : `${Math.round(progress)}%`;
 
-  els.updateDate.value = new Date().toISOString().slice(0, 10);
-  setMessage(els.updateMessage, "");
+  if (!els.editingUpdateId.value) {
+    resetUpdateForm();
+  }
 }
 
 async function loadHistory(metricId) {
@@ -294,13 +614,24 @@ function renderHistory() {
     const reviewer = update.reviewed_by || update.verified_by;
     const reviewedAt = update.reviewed_at || update.verified_at;
 
-    const actions = roleCanReview() && update.verification_status === "draft"
-      ? `<div class="history-actions">
-           <button class="review-button verify-button" type="button"
-             data-action="verified" data-id="${update.id}">Verify</button>
-           <button class="review-button reject-button" type="button"
-             data-action="rejected" data-id="${update.id}">Reject</button>
-         </div>`
+    const canEdit =
+      update.verification_status === "draft" &&
+      update.created_by === state.session?.user?.id;
+
+    const editAction = canEdit
+      ? `<button class="review-button open-button" type="button"
+           data-edit-history="${update.id}">Edit</button>`
+      : "";
+
+    const reviewAction = roleCanReview() && update.verification_status === "draft"
+      ? `<button class="review-button verify-button" type="button"
+           data-action="verified" data-id="${update.id}">Verify</button>
+         <button class="review-button reject-button" type="button"
+           data-action="rejected" data-id="${update.id}">Reject</button>`
+      : "";
+
+    const actions = editAction || reviewAction
+      ? `<div class="history-actions">${editAction}${reviewAction}</div>`
       : "";
 
     card.innerHTML = `
@@ -334,7 +665,9 @@ function renderHistory() {
 }
 
 async function submitDraft() {
-  if (!state.selectedMetric) throw new Error("Pilih metric terlebih dahulu.");
+  if (!state.selectedMetric) {
+    throw new Error("Pilih metric terlebih dahulu.");
+  }
 
   const actualValue = els.updateActual.value.trim();
   const progressValue = els.updateProgress.value.trim();
@@ -345,7 +678,9 @@ async function submitDraft() {
 
   if (progressValue) {
     const n = Number(progressValue);
-    if (n < 0 || n > 100) throw new Error("Progress Override harus 0–100.");
+    if (n < 0 || n > 100) {
+      throw new Error("Progress Override harus 0–100.");
+    }
   }
 
   const payload = {
@@ -358,20 +693,30 @@ async function submitDraft() {
     verification_status: "draft"
   };
 
-  const { error } = await adminSupabase.from("metric_updates").insert(payload);
-  if (error) throw error;
+  const editingId = els.editingUpdateId.value;
 
-  els.updateActual.value = "";
-  els.updateProgress.value = "";
-  els.updateEvidence.value = "";
-  els.updateNote.value = "";
+  if (editingId) {
+    const { error } = await adminSupabase
+      .from("metric_updates")
+      .update(payload)
+      .eq("id", Number(editingId));
+
+    if (error) throw error;
+  } else {
+    const { error } = await adminSupabase
+      .from("metric_updates")
+      .insert(payload);
+
+    if (error) throw error;
+  }
+
+  resetUpdateForm();
 
   await Promise.all([
     loadHistory(state.selectedMetric.id),
     loadAllUpdateCounts()
   ]);
 }
-
 async function reviewUpdate(id, status) {
   const reviewNote = window.prompt(
     status === "verified"
@@ -394,21 +739,23 @@ async function reviewUpdate(id, status) {
     return;
   }
 
-  const selectedKpiId = state.selectedKpi.id;
-  const selectedMetricId = state.selectedMetric.id;
+  const selectedKpiId = state.selectedKpi?.id || null;
+  const selectedMetricId = state.selectedMetric?.id || null;
 
   await Promise.all([
     loadReferenceData(),
-    loadHistory(selectedMetricId),
     loadAllUpdateCounts()
   ]);
 
-  state.selectedKpi = state.kpis.find(kpi => kpi.id === selectedKpiId);
-  state.selectedMetric = state.selectedKpi?.kpi_metrics.find(
-    metric => metric.id === selectedMetricId
-  );
+  if (selectedKpiId && selectedMetricId) {
+    state.selectedKpi = state.kpis.find(kpi => kpi.id === selectedKpiId);
+    state.selectedMetric = state.selectedKpi?.kpi_metrics.find(
+      metric => metric.id === selectedMetricId
+    );
 
-  renderMetric(state.selectedMetric);
+    renderMetric(state.selectedMetric);
+    await loadHistory(selectedMetricId);
+  }
 }
 
 async function enterAdmin(session) {
@@ -439,6 +786,9 @@ async function enterAdmin(session) {
     els.userName.textContent = profile.display_name || session.user.email;
     els.userRole.textContent = profile.role;
     populateKpis();
+    els.reviewQueuePanel.hidden = !roleCanReview();
+    renderMyDrafts();
+    renderReviewQueue();
   } catch (error) {
     console.error(error);
     window.alert(`Admin console gagal dimuat: ${error.message}`);
@@ -452,6 +802,7 @@ async function exitAdmin() {
   state.profile = null;
   state.kpis = [];
   state.updates = [];
+  state.allUpdates = [];
   state.selectedKpi = null;
   state.selectedMetric = null;
 
@@ -490,6 +841,7 @@ els.kpiSelect.addEventListener("change", () => {
     state.kpis.find(kpi => kpi.id === els.kpiSelect.value) || null;
   state.selectedMetric = null;
   populateMetrics(state.selectedKpi);
+  resetUpdateForm();
   els.workspace.hidden = true;
 });
 
@@ -499,24 +851,38 @@ els.metricSelect.addEventListener("change", async () => {
       metric => metric.id === els.metricSelect.value
     ) || null;
 
+  resetUpdateForm();
   renderMetric(state.selectedMetric);
   if (state.selectedMetric) await loadHistory(state.selectedMetric.id);
 });
 
 els.updateForm.addEventListener("submit", async event => {
   event.preventDefault();
-  setMessage(els.updateMessage, "Submitting…");
+
+  const editing = Boolean(els.editingUpdateId.value);
+  setMessage(els.updateMessage, editing ? "Saving…" : "Submitting…");
+
   try {
     await submitDraft();
     setMessage(
       els.updateMessage,
-      "Draft tersimpan. Menunggu reviewer/admin.",
+      editing
+        ? "Draft berhasil diperbarui."
+        : "Draft tersimpan. Menunggu reviewer/admin.",
       "success"
     );
   } catch (error) {
     setMessage(els.updateMessage, error.message, "error");
   }
 });
+
+els.cancelEditButton.addEventListener("click", () => {
+  resetUpdateForm();
+});
+
+els.myDraftsSearch.addEventListener("input", renderMyDrafts);
+els.reviewSearch.addEventListener("input", renderReviewQueue);
+els.reviewClusterFilter.addEventListener("change", renderReviewQueue);
 
 adminSupabase.auth.onAuthStateChange(async (_event, session) => {
   state.session = session;
