@@ -32,20 +32,18 @@
   <main class="shell main-shell">
     <section id="login-panel" class="auth-card">
       <p class="eyebrow">AUTHENTICATION</p>
-      <h2>Sign in via email</h2>
+      <h2>Sign in with Google</h2>
       <p>
-        Masukkan email yang sudah diizinkan sebagai admin KPI Tracker.
-        Link login akan dikirim ke email tersebut.
+        Gunakan akun Google yang email-nya sudah terdaftar di KPI Tracker.
+        Google memverifikasi identitas; akses tetap ditentukan oleh allowlist dan role.
       </p>
 
-      <form id="login-form" class="login-form">
-        <label>
-          <span>Email</span>
-          <input id="login-email" type="email" autocomplete="email"
-                 placeholder="nama@email.com" required />
-        </label>
-        <button type="submit" class="primary-button">Send magic link</button>
-      </form>
+      <div class="google-login-wrap">
+        <button id="google-login-button" type="button" class="google-button">
+          <span class="google-mark" aria-hidden="true">G</span>
+          Continue with Google
+        </button>
+      </div>
 
       <p id="login-message" class="form-message"></p>
     </section>
@@ -255,6 +253,45 @@
         </div>
 
         <div id="review-list" class="queue-list"></div>
+      </section>
+
+      <section id="user-management-panel" class="panel phase4b-panel" hidden>
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">ACCESS CONTROL</p>
+            <h2>User Management</h2>
+          </div>
+          <span id="active-user-count" class="count-badge">0</span>
+        </div>
+
+        <div class="user-management-grid">
+          <div class="user-form-card">
+            <h3>Add User</h3>
+            <p class="muted">Daftarkan email Google dan role. Tidak perlu invite atau password.</p>
+
+            <form id="add-user-form" class="user-form">
+              <label><span>Email *</span><input id="new-user-email" type="email" placeholder="nama@gmail.com" required /></label>
+              <label><span>Display Name</span><input id="new-user-name" type="text" placeholder="Nama" /></label>
+              <label>
+                <span>Role *</span>
+                <select id="new-user-role" required>
+                  <option value="editor">Editor</option>
+                  <option value="reviewer">Reviewer</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </label>
+              <button type="submit" class="primary-button">Add User</button>
+              <p id="user-form-message" class="form-message"></p>
+            </form>
+          </div>
+
+          <div>
+            <div class="queue-toolbar one-column">
+              <label><span>Search users</span><input id="user-search" type="search" placeholder="Name, email, role..." /></label>
+            </div>
+            <div id="user-list" class="user-list"></div>
+          </div>
+        </div>
       </section>
     </div>
 
