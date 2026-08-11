@@ -173,6 +173,13 @@ function formatDate(dateString) {
   }).format(d);
 }
 
+function formatActualMeta(metric) {
+  const parts = [];
+  if (metric.actual_date) parts.push(`As of ${formatDate(metric.actual_date)}`);
+  if (metric.actual_note) parts.push(metric.actual_note);
+  return parts.join(" · ");
+}
+
 async function loadData() {
   try {
     const { data, error } = await supabaseClient
@@ -208,6 +215,9 @@ async function loadData() {
           target,
           target_description,
           actual,
+          actual_date,
+          actual_note,
+          public_evidence_url,
           unit,
           weight,
           progress_pct,
@@ -429,10 +439,17 @@ function renderKpis() {
       const progressValue = metricProgress(metric);
       const readiness = metricReadiness(metric);
 
+      const actualMeta = formatActualMeta(metric);
+      const evidenceLink = metric.public_evidence_url
+        ? `<a class="metric-evidence-link" href="${escapeHtml(metric.public_evidence_url)}" target="_blank" rel="noopener noreferrer">Evidence ↗</a>`
+        : "";
+
       metricEl.innerHTML = `
         <div>
           <strong>${escapeHtml(metric.metric_name)}</strong>
           <small>${escapeHtml(formatLabel(metric.measurement_method))} · ${escapeHtml(metric.target_description || "Target definition TBD")}</small>
+          ${actualMeta ? `<small>${escapeHtml(actualMeta)}</small>` : ""}
+          ${evidenceLink}
         </div>
         <div class="metric-value">
           <strong>${escapeHtml(formatMetricValue(metric))}</strong>
