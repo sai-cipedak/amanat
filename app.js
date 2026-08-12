@@ -109,35 +109,44 @@ function metricReadiness(metric) {
 }
 
 function kpiProgress(kpi) {
-  const metrics = (kpi.kpi_metrics || []).filter(m => m.is_public !== false);
+  const metrics = (kpi.kpi_metrics || []).filter(
+    metric => metric.is_public !== false
+  );
+
   if (!metrics.length) return null;
 
-  const calculated = metrics.map(metric => ({
-    progress: metricProgress(metric),
-    weight: Number(metric.weight || 1)
-  }));
+  const progressValues = metrics.map(metric => metricProgress(metric));
 
-  // Conservative rule: do not show a KPI progress number until all metrics are measurable.
-  if (calculated.some(item => item.progress === null)) return null;
+  // Single-metric KPI preserves the metric's own data state.
+  if (metrics.length === 1) {
+    return progressValues[0];
+  }
 
-  const denominator = calculated.reduce((sum, item) => sum + item.weight, 0);
-  if (!denominator) return null;
-
-  return calculated.reduce(
-    (sum, item) => sum + item.progress * item.weight,
+  // Multi-metric KPI is always an equal-weight aggregate.
+  // A child metric without measurable progress contributes 0%.
+  // Example: [40%, null] => (40 + 0) / 2 = 20%.
+  return progressValues.reduce(
+    (sum, progress) => sum + (progress ?? 0),
     0
-  ) / denominator;
+  ) / metrics.length;
 }
 
 function kpiDataState(kpi) {
-  const metrics = kpi.kpi_metrics || [];
+  const metrics = (kpi.kpi_metrics || []).filter(
+    metric => metric.is_public !== false
+  );
+
   if (!metrics.length) return "needs_data";
 
-  if (metrics.some(m => metricReadiness(m) === "needs_target")) {
+  if (metrics.some(metric => metricReadiness(metric) === "needs_target")) {
     return "needs_target";
   }
 
-  return kpiProgress(kpi) === null ? "needs_data" : "measured";
+  const measurableCount = metrics.filter(
+    metric => metricProgress(metric) !== null
+  ).length;
+
+  return measurableCount > 0 ? "measured" : "needs_data";
 }
 
 function formatDataState(value) {
