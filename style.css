@@ -538,14 +538,11 @@ footer .shell {
   }
 }
 
-.metric-evidence-link {
-  display: inline-block;
-  margin-top: 6px;
-  color: var(--accent);
-  font-size: 12px;
-  font-weight: 800;
-  text-decoration: none;
-}
-.metric-evidence-link:hover {
-  text-decoration: underline;
+
+/* Phase 4D stabilization — improve contrast on accent summary card */
+.summary-card-accent,
+.summary-card-accent .summary-label,
+.summary-card-accent strong,
+.summary-card-accent small {
+  color: #ffffff;
 }
