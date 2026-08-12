@@ -60,6 +60,8 @@ const els = {
   updateDate: document.getElementById("update-date"),
   updateActual: document.getElementById("update-actual"),
   updateProgress: document.getElementById("update-progress"),
+  kpiAggregateField: document.getElementById("kpi-aggregate-field"),
+  kpiAggregateProgress: document.getElementById("kpi-aggregate-progress"),
   updateEvidence: document.getElementById("update-evidence"),
   updateNote: document.getElementById("update-note"),
   updateMessage: document.getElementById("update-message"),
@@ -158,6 +160,46 @@ function metricProgress(metric) {
     case "target_is_exact": return target !== null && actual === target ? 100 : 0;
     default: return null;
   }
+}
+
+
+function kpiAggregateProgress(kpi) {
+  const metrics = (kpi?.kpi_metrics || []).filter(
+    metric => metric.is_public !== false
+  );
+
+  if (!metrics.length) return null;
+
+  const progressValues = metrics.map(metric => metricProgress(metric));
+
+  if (metrics.length === 1) {
+    return progressValues[0];
+  }
+
+  return progressValues.reduce(
+    (sum, progress) => sum + (progress ?? 0),
+    0
+  ) / metrics.length;
+}
+
+function renderKpiAggregateProgress() {
+  const kpi = state.selectedKpi;
+  const metrics = (kpi?.kpi_metrics || []).filter(
+    metric => metric.is_public !== false
+  );
+
+  const isMultiMetric = metrics.length > 1;
+
+  els.kpiAggregateField.hidden = !isMultiMetric;
+
+  if (!isMultiMetric) {
+    els.kpiAggregateProgress.value = "";
+    return;
+  }
+
+  const aggregate = kpiAggregateProgress(kpi);
+  els.kpiAggregateProgress.value =
+    aggregate === null ? "0" : Number(aggregate.toFixed(2));
 }
 
 async function signInWithGoogle() {
@@ -712,6 +754,8 @@ function renderKpiOptions({ preserveSelection = true } = {}) {
     els.metricSelect.disabled = true;
     els.workspace.hidden = true;
     els.kpiFlagControls.hidden = true;
+    els.kpiAggregateField.hidden = true;
+    els.kpiAggregateProgress.value = "";
     resetUpdateForm();
   }
 }
@@ -748,6 +792,7 @@ function populateMetrics(kpi) {
 
 function renderMetric(metric) {
   renderSelectedKpiFlags();
+  renderKpiAggregateProgress();
 
   if (!metric || !state.selectedKpi) {
     els.workspace.hidden = true;
@@ -1165,6 +1210,7 @@ els.kpiSelect.addEventListener("change", () => {
   resetUpdateForm();
   els.workspace.hidden = true;
   renderSelectedKpiFlags();
+  renderKpiAggregateProgress();
 });
 
 els.metricSelect.addEventListener("change", async () => {
