@@ -124,6 +124,34 @@
             </select>
           </label>
         </div>
+        <div id="kpi-flag-controls" class="kpi-flag-controls" hidden>
+          <div class="kpi-flag-control-heading">
+            <div>
+              <span class="flag-section-label">Project Flags</span>
+              <strong id="kpi-effective-status">—</strong>
+            </div>
+            <span id="kpi-flag-message" class="form-message"></span>
+          </div>
+
+          <div class="kpi-flag-toggle-grid">
+            <label class="flag-toggle">
+              <input id="kpi-active-manual" type="checkbox" />
+              <span>
+                <strong>Project Active</strong>
+                <small>Centang jika project sudah berjalan meski progress masih 0 / belum terukur.</small>
+              </span>
+            </label>
+
+            <label class="flag-toggle">
+              <input id="kpi-priority" type="checkbox" />
+              <span>
+                <strong>Project Prioritas</strong>
+                <small>Penanda KPI prioritas untuk alokasi resource DS.</small>
+              </span>
+            </label>
+          </div>
+        </div>
+
       </section>
 
       <section id="metric-workspace" class="workspace-grid" hidden>
