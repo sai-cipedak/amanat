@@ -33,6 +33,11 @@ const els = {
   kpiClusterFilter: document.getElementById("kpi-cluster-filter"),
   kpiFilterCount: document.getElementById("kpi-filter-count"),
   kpiSelect: document.getElementById("kpi-select"),
+  kpiFlagControls: document.getElementById("kpi-flag-controls"),
+  kpiActiveManual: document.getElementById("kpi-active-manual"),
+  kpiPriority: document.getElementById("kpi-priority"),
+  kpiEffectiveStatus: document.getElementById("kpi-effective-status"),
+  kpiFlagMessage: document.getElementById("kpi-flag-message"),
   metricSelect: document.getElementById("metric-select"),
   workspace: document.getElementById("metric-workspace"),
   metricId: document.getElementById("metric-id"),
@@ -180,6 +185,8 @@ async function loadReferenceData() {
     .from("kpis")
     .select(`
       id, title, mandate_id, sort_order,
+      is_priority, is_active_manual,
+      flags_updated_at, flags_updated_by,
       mandates (id, title, cluster, sort_order),
       kpi_metrics (
         id, metric_name, metric_description,
@@ -189,7 +196,7 @@ async function loadReferenceData() {
         actual, actual_date, actual_note,
         progress_pct, public_evidence_url,
         data_owner, reporting_frequency,
-        sort_order, is_public
+        weight, sort_order, is_public
       )
     `)
     .order("sort_order", { ascending: true });
@@ -207,6 +214,102 @@ async function loadReferenceData() {
   });
 }
 
+
+
+function kpiActivityState(kpi) {
+  const metrics = (kpi?.kpi_metrics || []).filter(
+    metric => metric.is_public !== false
+  );
+
+  if (!metrics.length) {
+    return kpi?.is_active_manual ? "active" : "not_active";
+  }
+
+  const progressValues = metrics.map(metric => metricProgress(metric));
+
+  const completed =
+    progressValues.length > 0 &&
+    progressValues.every(
+      progress => progress !== null && progress >= 100
+    );
+
+  if (completed) return "completed";
+
+  const hasProgress = progressValues.some(
+    progress => progress !== null && progress > 0
+  );
+
+  if (kpi?.is_active_manual || hasProgress) return "active";
+
+  return "not_active";
+}
+
+function formatActivityState(stateValue) {
+  return {
+    active: "Active",
+    not_active: "Belum Active",
+    completed: "Completed"
+  }[stateValue] || "—";
+}
+
+function canEditProjectFlags() {
+  return ["editor", "admin"].includes(state.profile?.role);
+}
+
+function renderSelectedKpiFlags() {
+  const kpi = state.selectedKpi;
+
+  if (!kpi) {
+    els.kpiFlagControls.hidden = true;
+    return;
+  }
+
+  els.kpiFlagControls.hidden = false;
+
+  const editable = canEditProjectFlags();
+
+  els.kpiActiveManual.checked = Boolean(kpi.is_active_manual);
+  els.kpiPriority.checked = Boolean(kpi.is_priority);
+
+  els.kpiActiveManual.disabled = !editable;
+  els.kpiPriority.disabled = !editable;
+
+  els.kpiEffectiveStatus.textContent =
+    `${formatActivityState(kpiActivityState(kpi))} · ` +
+    `${kpi.is_priority ? "Prioritas" : "Less Priority"}`;
+
+  setMessage(
+    els.kpiFlagMessage,
+    editable ? "" : "Read-only untuk role ini."
+  );
+}
+
+async function updateSelectedKpiFlag(field, value) {
+  if (!state.selectedKpi || !canEditProjectFlags()) return;
+
+  const previous = state.selectedKpi[field];
+
+  state.selectedKpi[field] = value;
+  renderSelectedKpiFlags();
+  setMessage(els.kpiFlagMessage, "Saving…");
+
+  const payload = {};
+  payload[field] = value;
+
+  const { error } = await adminSupabase
+    .from("kpis")
+    .update(payload)
+    .eq("id", state.selectedKpi.id);
+
+  if (error) {
+    state.selectedKpi[field] = previous;
+    renderSelectedKpiFlags();
+    setMessage(els.kpiFlagMessage, error.message, "error");
+    return;
+  }
+
+  setMessage(els.kpiFlagMessage, "Saved.", "success");
+}
 
 function findMetricContext(metricId) {
   for (const kpi of state.kpis) {
@@ -608,6 +711,7 @@ function renderKpiOptions({ preserveSelection = true } = {}) {
     els.metricSelect.innerHTML = `<option value="">Pilih metric…</option>`;
     els.metricSelect.disabled = true;
     els.workspace.hidden = true;
+    els.kpiFlagControls.hidden = true;
     resetUpdateForm();
   }
 }
@@ -643,6 +747,8 @@ function populateMetrics(kpi) {
 }
 
 function renderMetric(metric) {
+  renderSelectedKpiFlags();
+
   if (!metric || !state.selectedKpi) {
     els.workspace.hidden = true;
     return;
@@ -1031,6 +1137,20 @@ els.kpiClusterFilter.addEventListener("change", () => {
   renderKpiOptions();
 });
 
+els.kpiActiveManual.addEventListener("change", async () => {
+  await updateSelectedKpiFlag(
+    "is_active_manual",
+    els.kpiActiveManual.checked
+  );
+});
+
+els.kpiPriority.addEventListener("change", async () => {
+  await updateSelectedKpiFlag(
+    "is_priority",
+    els.kpiPriority.checked
+  );
+});
+
 els.kpiSelect.addEventListener("change", () => {
   state.selectedKpi =
     state.kpis.find(kpi => kpi.id === els.kpiSelect.value) || null;
@@ -1038,6 +1158,7 @@ els.kpiSelect.addEventListener("change", () => {
   populateMetrics(state.selectedKpi);
   resetUpdateForm();
   els.workspace.hidden = true;
+  renderSelectedKpiFlags();
 });
 
 els.metricSelect.addEventListener("change", async () => {
