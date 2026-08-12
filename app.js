@@ -653,9 +653,14 @@ function escapeHtml(value) {
   els.clusterFilter,
   els.typeFilter,
   els.responsibilityFilter,
+  els.priorityFilter,
+  els.activityFilter,
   els.dataFilter
 ].forEach(input => {
-  input.addEventListener(input.tagName === "INPUT" ? "input" : "change", applyFilters);
+  input.addEventListener(
+    input.tagName === "INPUT" ? "input" : "change",
+    applyFilters
+  );
 });
 
 els.resetFilters.addEventListener("click", () => {
