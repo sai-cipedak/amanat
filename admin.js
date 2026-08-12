@@ -1064,7 +1064,7 @@ async function enterAdmin(session) {
 
       // Authentication succeeded at Google, but authorization failed.
       // Do not keep an unauthorized Supabase session in this browser.
-      await adminSupabase.auth.signOut();
+      await adminSupabase.auth.signOut({ scope: "local" });
 
       await exitAdmin();
       setMessage(
@@ -1112,9 +1112,13 @@ async function exitAdmin() {
   state.selectedKpi = null;
   state.selectedMetric = null;
 
+  // Clear all visible identity state immediately after logout / failed authorization.
+  els.userName.textContent = "";
+  els.userRole.textContent = "";
+  els.sessionControls.hidden = true;
+
   els.adminApp.hidden = true;
   els.accessDenied.hidden = true;
-  els.sessionControls.hidden = true;
   els.workspace.hidden = true;
   els.loginPanel.hidden = false;
 }
@@ -1126,7 +1130,9 @@ els.googleLoginButton.addEventListener("click", async () => {
 });
 
 els.logout.addEventListener("click", async () => {
-  await adminSupabase.auth.signOut();
+  // Clear this browser's Supabase session, then reset the UI immediately.
+  await adminSupabase.auth.signOut({ scope: "local" });
+  await exitAdmin();
 });
 
 els.kpiSearch.addEventListener("input", () => {
