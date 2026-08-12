@@ -115,6 +115,25 @@
         </label>
 
         <label>
+          <span>Priority</span>
+          <select id="priority-filter">
+            <option value="">Semua</option>
+            <option value="priority">Project Prioritas</option>
+            <option value="less_priority">Less Priority</option>
+          </select>
+        </label>
+
+        <label>
+          <span>Project Status</span>
+          <select id="activity-filter">
+            <option value="">Semua</option>
+            <option value="active">Project Active</option>
+            <option value="not_active">Belum Active</option>
+            <option value="completed">Completed</option>
+          </select>
+        </label>
+
+        <label>
           <span>Data Status</span>
           <select id="data-filter">
             <option value="">Semua</option>
@@ -158,6 +177,8 @@
             <span class="kpi-id"></span>
             <span class="pill kpi-type"></span>
             <span class="pill responsibility"></span>
+            <span class="pill project-priority-flag"></span>
+            <span class="pill project-activity-flag"></span>
           </div>
           <h3 class="kpi-title"></h3>
           <p class="kpi-mandate"></p>
