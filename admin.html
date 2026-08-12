@@ -205,9 +205,17 @@
                 </label>
 
                 <label>
-                  <span>Progress override %</span>
+                  <span>Metric Progress Override %</span>
                   <input id="update-progress" type="number"
                          min="0" max="100" step="0.01" placeholder="Optional" />
+                  <small>Override progress untuk metric yang sedang dipilih, misalnya metric milestone.</small>
+                </label>
+
+                <label id="kpi-aggregate-field" hidden>
+                  <span>KPI Aggregate Progress %</span>
+                  <input id="kpi-aggregate-progress" type="number"
+                         min="0" max="100" step="0.01" disabled />
+                  <small>Auto: jumlah progress seluruh child metric ÷ jumlah metric. Metric yang belum terukur = 0%.</small>
                 </label>
 
                 <label class="wide">
