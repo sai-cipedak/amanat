@@ -261,3 +261,18 @@ code{padding:2px 5px;border-radius:5px;background:rgba(0,0,0,.05)}
     grid-template-columns: 1fr;
   }
 }
+
+
+/* Phase 4D stabilization — historical progress display */
+.history-value .history-progress {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 5px;
+  margin-bottom: 2px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 900;
+}
