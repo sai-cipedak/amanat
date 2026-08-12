@@ -38,6 +38,8 @@ const els = {
   clusterFilter: document.getElementById("cluster-filter"),
   typeFilter: document.getElementById("type-filter"),
   responsibilityFilter: document.getElementById("responsibility-filter"),
+  priorityFilter: document.getElementById("priority-filter"),
+  activityFilter: document.getElementById("activity-filter"),
   dataFilter: document.getElementById("data-filter"),
   resetFilters: document.getElementById("reset-filters")
 };
@@ -191,6 +193,93 @@ function formatActualMeta(metric) {
   return parts.join(" · ");
 }
 
+
+function kpiActivityState(kpi) {
+  const metrics = (kpi.kpi_metrics || []).filter(
+    metric => metric.is_public !== false
+  );
+
+  if (!metrics.length) {
+    return kpi.is_active_manual ? "active" : "not_active";
+  }
+
+  const progressValues = metrics.map(metric => metricProgress(metric));
+
+  const completed =
+    progressValues.length > 0 &&
+    progressValues.every(
+      progress => progress !== null && progress >= 100
+    );
+
+  if (completed) return "completed";
+
+  const hasProgress = progressValues.some(
+    progress => progress !== null && progress > 0
+  );
+
+  if (kpi.is_active_manual || hasProgress) return "active";
+
+  return "not_active";
+}
+
+function formatActivityState(value) {
+  return {
+    active: "● Active",
+    not_active: "○ Belum Active",
+    completed: "✓ Completed"
+  }[value] || "—";
+}
+
+function formatPriorityState(kpi) {
+  return kpi.is_priority
+    ? "★ Prioritas"
+    : "◇ Less Priority";
+}
+
+function numericKpiKey(id) {
+  const match = String(id || "").match(/^AM(\d+)-K(\d+)$/i);
+  if (!match) return [9999, 9999];
+  return [Number(match[1]), Number(match[2])];
+}
+
+function buildClusterOrderMap(kpis) {
+  const order = new Map();
+
+  kpis.forEach(kpi => {
+    const cluster = kpi.mandates?.cluster || "Belum diklasifikasikan";
+    const mandateOrder = Number(kpi.mandates?.sort_order ?? 9999);
+
+    if (!order.has(cluster) || mandateOrder < order.get(cluster)) {
+      order.set(cluster, mandateOrder);
+    }
+  });
+
+  return order;
+}
+
+function compareKpisByClusterThenId(a, b, clusterOrder) {
+  const clusterA = a.mandates?.cluster || "Belum diklasifikasikan";
+  const clusterB = b.mandates?.cluster || "Belum diklasifikasikan";
+
+  const rankA = clusterOrder.get(clusterA) ?? 9999;
+  const rankB = clusterOrder.get(clusterB) ?? 9999;
+
+  if (rankA !== rankB) return rankA - rankB;
+
+  const clusterCompare = clusterA.localeCompare(clusterB, "id");
+  if (clusterCompare !== 0 && rankA === rankB) {
+    return clusterCompare;
+  }
+
+  const [amA, kA] = numericKpiKey(a.id);
+  const [amB, kB] = numericKpiKey(b.id);
+
+  if (amA !== amB) return amA - amB;
+  if (kA !== kB) return kA - kB;
+
+  return String(a.id).localeCompare(String(b.id), "id");
+}
+
 async function loadData() {
   try {
     const { data, error } = await supabaseClient
@@ -207,6 +296,8 @@ async function loadData() {
         evidence_requirement,
         status,
         sort_order,
+        is_priority,
+        is_active_manual,
         is_public,
         updated_at,
         mandates (
@@ -249,6 +340,12 @@ async function loadData() {
         .filter(metric => metric.is_public !== false)
         .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
     }));
+
+    const clusterOrder = buildClusterOrderMap(state.kpis);
+
+    state.kpis.sort((a, b) =>
+      compareKpisByClusterThenId(a, b, clusterOrder)
+    );
 
     state.filtered = [...state.kpis];
 
@@ -393,6 +490,8 @@ function applyFilters() {
   const cluster = els.clusterFilter.value;
   const type = els.typeFilter.value;
   const responsibility = els.responsibilityFilter.value;
+  const priority = els.priorityFilter.value;
+  const activity = els.activityFilter.value;
   const dataState = els.dataFilter.value;
 
   state.filtered = state.kpis.filter(kpi => {
@@ -411,9 +510,18 @@ function applyFilters() {
       (!cluster || kpi.mandates?.cluster === cluster) &&
       (!type || kpi.measurement_type === type) &&
       (!responsibility || kpi.responsibility === responsibility) &&
+      (!priority ||
+        (priority === "priority" && kpi.is_priority) ||
+        (priority === "less_priority" && !kpi.is_priority)) &&
+      (!activity || kpiActivityState(kpi) === activity) &&
       (!dataState || kpiDataState(kpi) === dataState)
     );
   });
+
+  const clusterOrder = buildClusterOrderMap(state.kpis);
+  state.filtered.sort((a, b) =>
+    compareKpisByClusterThenId(a, b, clusterOrder)
+  );
 
   renderKpis();
 }
@@ -422,7 +530,32 @@ function renderKpis() {
   els.list.innerHTML = "";
   els.resultCount.textContent = `${state.filtered.length} KPI`;
 
+  let currentCluster = null;
+
   state.filtered.forEach(kpi => {
+    const clusterName =
+      kpi.mandates?.cluster || "Belum diklasifikasikan";
+
+    if (clusterName !== currentCluster) {
+      currentCluster = clusterName;
+
+      const clusterHeader = document.createElement("div");
+      clusterHeader.className = "kpi-cluster-heading";
+
+      const countInCluster = state.filtered.filter(
+        item =>
+          (item.mandates?.cluster || "Belum diklasifikasikan") ===
+          clusterName
+      ).length;
+
+      clusterHeader.innerHTML = `
+        <strong>${escapeHtml(clusterName)}</strong>
+        <span>${countInCluster} KPI</span>
+      `;
+
+      els.list.appendChild(clusterHeader);
+    }
+
     const fragment = els.template.content.cloneNode(true);
     const card = fragment.querySelector(".kpi-card");
     const header = fragment.querySelector(".kpi-card-header");
@@ -434,6 +567,17 @@ function renderKpis() {
     fragment.querySelector(".kpi-id").textContent = kpi.id;
     fragment.querySelector(".kpi-type").textContent = formatLabel(kpi.measurement_type);
     fragment.querySelector(".responsibility").textContent = formatLabel(kpi.responsibility);
+
+    const priorityFlag = fragment.querySelector(".project-priority-flag");
+    priorityFlag.textContent = formatPriorityState(kpi);
+    priorityFlag.classList.toggle("flag-priority", Boolean(kpi.is_priority));
+    priorityFlag.classList.toggle("flag-less-priority", !kpi.is_priority);
+
+    const activityState = kpiActivityState(kpi);
+    const activityFlag = fragment.querySelector(".project-activity-flag");
+    activityFlag.textContent = formatActivityState(activityState);
+    activityFlag.classList.add(`flag-${activityState}`);
+
     fragment.querySelector(".kpi-title").textContent = kpi.title;
     fragment.querySelector(".kpi-mandate").textContent =
       `${kpi.mandates?.id || ""} · ${kpi.mandates?.title || "Amanat belum tersedia"}`;
@@ -519,6 +663,8 @@ els.resetFilters.addEventListener("click", () => {
   els.clusterFilter.value = "";
   els.typeFilter.value = "";
   els.responsibilityFilter.value = "";
+  els.priorityFilter.value = "";
+  els.activityFilter.value = "";
   els.dataFilter.value = "";
   applyFilters();
 });
