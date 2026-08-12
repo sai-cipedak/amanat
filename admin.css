@@ -369,3 +369,51 @@ code{padding:2px 5px;border-radius:5px;background:rgba(0,0,0,.05)}
     flex-direction: column;
   }
 }
+
+
+/* ============================================================
+   Minor header/session polish
+   ============================================================ */
+
+[hidden] {
+  display: none !important;
+}
+
+.topbar-actions {
+  align-items: flex-start;
+}
+
+.dashboard-link {
+  display: block;
+  padding-top: 1px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: 0;
+}
+
+.session-controls {
+  align-items: flex-start;
+}
+
+.session-user {
+  padding-top: 0;
+}
+
+.session-user strong {
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.session-user span {
+  margin-top: 3px;
+  line-height: 1.2;
+}
+
+@media (max-width:650px) {
+  .topbar-actions {
+    align-items: flex-start;
+  }
+}
