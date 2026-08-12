@@ -232,6 +232,19 @@ function updateValueLabel(update) {
   return "No numeric value";
 }
 
+function updateProgressValue(update) {
+  const context = findMetricContext(update.metric_id);
+  if (!context?.metric) return null;
+
+  // Reuse the same progress engine used by the current metric card,
+  // but substitute this historical observation's actual / override.
+  return metricProgress({
+    ...context.metric,
+    actual: update.actual,
+    progress_pct: update.progress_pct
+  });
+}
+
 function resetUpdateForm() {
   els.editingUpdateId.value = "";
   els.updateFormTitle.textContent = "Submit Update";
@@ -668,7 +681,7 @@ async function loadHistory(metricId) {
       id, metric_id, as_of_date, actual, progress_pct,
       public_evidence_url, update_note, verification_status,
       submitted_by, verified_by, verified_at,
-      reviewed_by, reviewed_at, review_note, created_at
+      reviewed_by, reviewed_at, review_note, created_by, created_at
     `)
     .eq("metric_id", metricId)
     .order("as_of_date", { ascending: false })
@@ -692,11 +705,11 @@ function renderHistory() {
     const card = document.createElement("article");
     card.className = "history-card";
 
-    const value = update.actual !== null && update.actual !== undefined
-      ? `Actual ${formatNumber(update.actual)}`
-      : update.progress_pct !== null && update.progress_pct !== undefined
-        ? `Progress ${formatNumber(update.progress_pct)}%`
-        : "No numeric value";
+    const value = updateValueLabel(update);
+    const updateProgress = updateProgressValue(update);
+    const progressLabel = updateProgress === null
+      ? "Progress —"
+      : `Progress ${formatNumber(updateProgress)}%`;
 
     const evidence = update.public_evidence_url
       ? `<a class="evidence-link" href="${escapeHtml(update.public_evidence_url)}"
@@ -730,6 +743,7 @@ function renderHistory() {
       <div class="history-top">
         <div class="history-value">
           <strong>${escapeHtml(value)}</strong>
+          <span class="history-progress">${escapeHtml(progressLabel)}</span>
           <span>As of ${escapeHtml(formatDate(update.as_of_date))}</span>
         </div>
         <span class="history-status ${escapeHtml(update.verification_status)}">
