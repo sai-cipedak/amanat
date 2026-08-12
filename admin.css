@@ -276,3 +276,96 @@ code{padding:2px 5px;border-radius:5px;background:rgba(0,0,0,.05)}
   font-size: 10px;
   font-weight: 900;
 }
+
+
+/* ============================================================
+   Project Flags
+   ============================================================ */
+
+.kpi-flag-controls {
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--soft);
+}
+
+.kpi-flag-control-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 11px;
+}
+
+.flag-section-label {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+
+#kpi-effective-status {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+}
+
+.kpi-flag-toggle-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.flag-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.flag-toggle input {
+  width: 17px;
+  height: 17px;
+  margin-top: 2px;
+  flex: 0 0 auto;
+}
+
+.flag-toggle > span {
+  display: block;
+  margin: 0;
+}
+
+.flag-toggle strong {
+  display: block;
+  color: var(--text);
+  font-size: 12px;
+}
+
+.flag-toggle small {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.flag-toggle:has(input:disabled) {
+  opacity: .65;
+}
+
+@media (max-width:650px) {
+  .kpi-flag-toggle-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .kpi-flag-control-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
