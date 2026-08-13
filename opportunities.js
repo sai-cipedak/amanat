@@ -351,9 +351,41 @@ function openProfile(context="Profile ini dipakai untuk matching dan aplikasi vo
   els.profileAdvisor.checked=state.profileModes.includes("advisor_sme");
   els.profileOperational.checked=state.profileModes.includes("operational_execution");
   els.profileLead.checked=state.profileModes.includes("project_lead");
-  els.profileSkills.innerHTML=state.skills.map(s=>`<label class="skill-chip">
-    <input type="checkbox" data-profile-skill="${s.id}" ${state.profileSkillIds.includes(Number(s.id))?"checked":""}>
-    <span>${esc(s.skill_family)} · ${esc(s.skill_name)}</span></label>`).join("");
+  const skillsByFamily=new Map();
+  for(const skill of state.skills){
+    if(!skillsByFamily.has(skill.skill_family))skillsByFamily.set(skill.skill_family,[]);
+    skillsByFamily.get(skill.skill_family).push(skill);
+  }
+
+  els.profileSkills.innerHTML=`
+    <div class="skill-tree">
+      ${[...skillsByFamily.entries()].map(([family,skills])=>{
+        const selectedCount=skills.filter(skill=>
+          state.profileSkillIds.includes(Number(skill.id))
+        ).length;
+
+        return `
+          <details class="skill-family" ${selectedCount?"open":""}>
+            <summary>
+              <span>${esc(family)}</span>
+              <span class="skill-family-count">
+                ${selectedCount?`${selectedCount} dipilih · `:""}${skills.length} skill
+              </span>
+            </summary>
+            <div class="skill-family-body">
+              ${skills.map(skill=>`
+                <label class="skill-option">
+                  <input type="checkbox" data-profile-skill="${skill.id}"
+                    ${state.profileSkillIds.includes(Number(skill.id))?"checked":""}>
+                  <span>${esc(skill.skill_name)}</span>
+                </label>
+              `).join("")}
+            </div>
+          </details>
+        `;
+      }).join("")}
+    </div>
+  `;
   message(els.profileMessage,"");els.profileModal.hidden=false;
 }
 
