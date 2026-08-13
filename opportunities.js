@@ -96,61 +96,66 @@ async function signIn(pendingId=null){
 
 async function loadSkills(){
   const {data,error}=await db.from("skill_catalog")
-    .select("id,skill_code,skill_family,skill_name,sort_order")
+    .select("id,skill_family,skill_name,sort_order")
     .eq("is_active",true).order("skill_family").order("sort_order").order("skill_name");
   if(error)throw error;
   state.skills=data||[];
 }
 
 async function loadOpportunities(){
-  const {data:ops,error:oe}=await db.from("volunteer_opportunities")
-    .select("id,metric_id,opportunity_title,short_description,status,min_hours_month,max_hours_month,volunteer_slots,public_note")
-    .eq("status","open").order("id");
-  if(oe)throw oe;
-  if(!ops?.length){state.opportunities=[];return;}
+  const { data, error } = await db.rpc(
+    "get_open_volunteer_opportunities"
+  );
 
-  const metricIds=[...new Set(ops.map(x=>x.metric_id))];
-  const [mr,rr,cr]=await Promise.all([
-    db.from("kpi_metrics")
-      .select("id,kpi_id,metric_name,metric_description,measurement_method,measurement_direction,baseline,target,actual,progress_pct,unit,is_public")
-      .in("id",metricIds),
-    db.from("metric_skill_requirements")
-      .select("metric_id,skill_id,requirement_level").in("metric_id",metricIds),
-    db.from("metric_contribution_modes")
-      .select("metric_id,contribution_mode").in("metric_id",metricIds)
-  ]);
-  if(mr.error)throw mr.error;if(rr.error)throw rr.error;if(cr.error)throw cr.error;
+  if(error) throw error;
 
-  const metrics=mr.data||[],kpiIds=[...new Set(metrics.map(x=>x.kpi_id))];
-  const {data:kpis,error:ke}=await db.from("kpis")
-    .select(`id,title,measurement_type,responsibility,is_priority,is_active_manual,
-      mandates(id,title,cluster,sort_order),
-      kpi_metrics(id,measurement_direction,baseline,target,actual,progress_pct,is_public)`)
-    .in("id",kpiIds);
-  if(ke)throw ke;
+  state.opportunities=(data||[]).map(row=>({
+    id: row.opportunity_id,
+    metric_id: row.metric_id,
+    opportunity_title: row.opportunity_title,
+    short_description: row.short_description,
+    min_hours_month: row.min_hours_month,
+    max_hours_month: row.max_hours_month,
+    volunteer_slots: row.volunteer_slots,
+    public_note: row.public_note,
 
-  const skillById=new Map(state.skills.map(s=>[Number(s.id),s]));
-  const metricById=new Map(metrics.map(m=>[m.id,m]));
-  const kpiById=new Map((kpis||[]).map(k=>[k.id,{...k,metrics:k.kpi_metrics||[]}]));
+    metric: {
+      id: row.metric_id,
+      kpi_id: row.kpi_id,
+      metric_name: row.metric_name,
+      metric_description: row.metric_description,
+      measurement_method: row.measurement_method,
+      measurement_direction: row.measurement_direction,
+      baseline: row.baseline,
+      target: row.target,
+      actual: row.actual,
+      progress_pct: row.progress_pct,
+      unit: row.unit,
+      is_public: true
+    },
 
-  const reqs=new Map(),modes=new Map();
-  for(const r of rr.data||[]){
-    if(!reqs.has(r.metric_id))reqs.set(r.metric_id,[]);
-    const s=skillById.get(Number(r.skill_id));
-    if(s)reqs.get(r.metric_id).push({...s,requirement_level:r.requirement_level});
-  }
-  for(const r of cr.data||[]){
-    if(!modes.has(r.metric_id))modes.set(r.metric_id,[]);
-    modes.get(r.metric_id).push(r.contribution_mode);
-  }
+    kpi: {
+      id: row.kpi_id,
+      title: row.kpi_title,
+      is_priority: Boolean(row.kpi_is_priority),
+      is_active_manual: Boolean(row.kpi_is_active_manual),
+      mandates: {
+        cluster: row.cluster
+      },
+      metrics: Array.isArray(row.kpi_metrics)
+        ? row.kpi_metrics
+        : []
+    },
 
-  state.opportunities=ops.map(o=>{
-    const metric=metricById.get(o.metric_id);if(!metric)return null;
-    const kpi=kpiById.get(metric.kpi_id);if(!kpi)return null;
-    return {...o,metric,kpi,skills:reqs.get(metric.id)||[],modes:modes.get(metric.id)||[]};
-  }).filter(Boolean);
+    skills: Array.isArray(row.skills)
+      ? row.skills
+      : [],
+
+    modes: Array.isArray(row.contribution_modes)
+      ? row.contribution_modes
+      : []
+  }));
 }
-
 async function loadUserData(){
   if(!state.session?.user){
     state.profile=null;state.profileSkillIds=[];state.profileModes=[];state.applications=[];return;
@@ -273,7 +278,13 @@ function renderList(){
   els.resultsTitle.textContent=state.mode==="capacity"?"Matched opportunities":"Available opportunities";
 
   if(!state.opportunities.length){
-    els.list.innerHTML='<div class="empty-card">Belum ada volunteering opportunity berstatus <strong>Open</strong>. Seeded opportunity masih Draft sampai editor/admin membukanya.</div>';return;
+    els.list.innerHTML=`<div class="empty-card">
+      Tidak ada <strong>Open opportunity dengan public KPI/metric context</strong>
+      yang dikembalikan Supabase.
+      <br><br>
+      Jika row sudah Open di Table Editor, jalankan diagnostic query
+      di <code>phase5b1_open_opportunity_catalog.sql</code>.
+    </div>`;return;
   }
   if(!state.filtered.length){
     els.list.innerHTML='<div class="empty-card">Tidak ada opportunity yang cocok dengan filter saat ini.</div>';return;
