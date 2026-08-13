@@ -1,3 +1,92 @@
 :root{--bg:#f4f6f3;--surface:#fff;--text:#18211a;--muted:#68716a;--line:#dde4dd;--accent:#315f42}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}.shell{width:min(1050px,calc(100% - 28px));margin:auto}header{background:#183924;color:#fff;padding:26px 0}header a{color:#fff;font-weight:800;text-decoration:none}.head{display:flex;justify-content:space-between;align-items:flex-start}main{padding:26px 0 60px}.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:22px;margin-bottom:16px}small{font-weight:900;letter-spacing:.08em}p{color:var(--muted)}.choices{display:grid;grid-template-columns:1fr 1fr;gap:12px}.choices button{min-height:120px;text-align:left;background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px}.choices b,.choices span{display:block}.choices span{margin-top:7px;color:var(--muted)}button{border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:9px;padding:10px 14px;font-weight:800}.secondary{background:#fff;color:var(--text);border-color:var(--line)}.auth{display:flex;justify-content:space-between;align-items:center;gap:15px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}.wide{grid-column:1/-1}label{font-size:12px;font-weight:800;color:var(--muted)}input,select,textarea{width:100%;margin-top:5px;border:1px solid var(--line);border-radius:8px;padding:10px;background:#fff}.check input,fieldset input{width:auto}.skills{margin-top:5px;padding:12px;border:1px solid var(--line);border-radius:9px}[hidden]{display:none!important}@media(max-width:680px){.choices,.grid{grid-template-columns:1fr}.wide{grid-column:auto}.auth,.head{align-items:stretch;flex-direction:column}}
 
 .choice-link{text-decoration:none;}
+
+
+/* Phase 5B.2 — landing + hierarchical skill selector */
+.head-actions{
+  display:flex;
+  align-items:center;
+  gap:14px;
+}
+.header-cta{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:38px;
+  padding:0 13px;
+  border-radius:9px;
+  background:#fff;
+  color:#183924!important;
+  font-weight:900;
+  text-decoration:none;
+}
+.skill-tree{display:grid;gap:7px;width:100%}
+.skill-family{
+  border:1px solid #dde4dd;
+  border-radius:10px;
+  background:#fff;
+  overflow:hidden
+}
+.skill-family>summary{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 12px;
+  cursor:pointer;
+  list-style:none;
+  color:#18211a;
+  font-size:12px;
+  font-weight:900
+}
+.skill-family>summary::-webkit-details-marker{display:none}
+.skill-family>summary::after{
+  content:"▾";
+  margin-left:8px;
+  color:#68716a;
+  font-size:11px;
+  transition:transform .15s ease
+}
+.skill-family[open]>summary::after{transform:rotate(180deg)}
+.skill-family-count{
+  margin-left:auto;
+  color:#68716a;
+  font-size:10px;
+  font-weight:800
+}
+.skill-family-body{
+  display:grid;
+  gap:2px;
+  padding:7px 10px 10px;
+  border-top:1px solid #edf0ed;
+  background:#fafbfa
+}
+.skill-option{
+  display:flex;
+  align-items:flex-start;
+  gap:8px;
+  padding:7px 6px;
+  border-radius:7px;
+  color:#18211a;
+  font-size:11px
+}
+.skill-option:hover{background:#eef4ef}
+.skill-option input{
+  width:15px;
+  min-height:15px;
+  margin-top:1px;
+  flex:0 0 auto
+}
+.skill-option span{
+  margin:0;
+  color:#18211a;
+  font-size:11px;
+  line-height:1.35
+}
+@media(max-width:650px){
+  .head-actions{
+    align-items:flex-start;
+    flex-direction:column;
+    gap:8px
+  }
+}
