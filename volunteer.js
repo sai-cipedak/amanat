@@ -44,10 +44,46 @@ async function loadUserData(){
 }
 
 function renderSkills(){
-  if(!state.skills.length){els.skills.innerHTML="<span>Skill catalog belum di-seed.</span>";return;}
-  els.skills.innerHTML=state.skills.map(s=>`
-    <label class="skill"><input type="checkbox" data-skill="${s.id}" ${state.skillIds.includes(Number(s.id))?"checked":""}>
-    ${s.skill_family} · ${s.skill_name}</label>`).join("");
+  if(!state.skills.length){
+    els.skills.innerHTML="<span>Skill catalog belum di-seed.</span>";
+    return;
+  }
+
+  const byFamily=new Map();
+  for(const skill of state.skills){
+    if(!byFamily.has(skill.skill_family))byFamily.set(skill.skill_family,[]);
+    byFamily.get(skill.skill_family).push(skill);
+  }
+
+  els.skills.innerHTML=`
+    <div class="skill-tree">
+      ${[...byFamily.entries()].map(([family,skills])=>{
+        const selectedCount=skills.filter(skill=>
+          state.skillIds.includes(Number(skill.id))
+        ).length;
+
+        return `
+          <details class="skill-family" ${selectedCount?"open":""}>
+            <summary>
+              <span>${family}</span>
+              <span class="skill-family-count">
+                ${selectedCount?`${selectedCount} dipilih · `:""}${skills.length} skill
+              </span>
+            </summary>
+            <div class="skill-family-body">
+              ${skills.map(skill=>`
+                <label class="skill-option">
+                  <input type="checkbox" data-skill="${skill.id}"
+                    ${state.skillIds.includes(Number(skill.id))?"checked":""}>
+                  <span>${skill.skill_name}</span>
+                </label>
+              `).join("")}
+            </div>
+          </details>
+        `;
+      }).join("")}
+    </div>
+  `;
 }
 
 async function render(){
