@@ -4,7 +4,6 @@ const $ = id => document.getElementById(id);
 const state = { session:null, profile:null, skills:[], skillIds:[], modes:[] };
 
 const els = {
-  byKpi:$("by-kpi"), byCapacity:$("by-capacity"),
   login:$("login"), logout:$("logout"),
   authTitle:$("auth-title"), authCopy:$("auth-copy"),
   profile:$("profile"), form:$("profile-form"),
@@ -137,9 +136,18 @@ async function saveProfile(){
   state.profile=profile;state.skillIds=skillIds;state.modes=modes;
 }
 
-els.byKpi.onclick=()=>location.href="opportunities.html?mode=kpi";
-els.byCapacity.onclick=()=>location.href="opportunities.html?mode=capacity";
-els.login.onclick=async()=>{try{await signIn();}catch(e){alert(e.message);}};
+els.login.onclick=async()=>{
+  try{
+    els.login.disabled=true;
+    els.login.textContent="Opening Google…";
+    await signIn();
+  }catch(e){
+    console.error("Google sign-in failed:",e);
+    alert(`Google sign-in failed: ${e.message}`);
+    els.login.disabled=false;
+    els.login.textContent="Continue with Google";
+  }
+};
 els.logout.onclick=async()=>{await db.auth.signOut({scope:"local"});state.session=null;await render();};
 els.form.onsubmit=async e=>{
   e.preventDefault();els.msg.textContent="Saving…";
