@@ -4,4 +4,47 @@
 
 <section class="card auth"><div><small>GOOGLE ACCOUNT</small><h2 id="auth-title">Belum login</h2><p id="auth-copy">Browse boleh tanpa login. Login diperlukan untuk profile dan Join.</p></div><div><button id="login">Continue with Google</button><button id="logout" class="secondary" hidden>Sign out</button></div></section>
 <section id="profile" class="card" hidden><small>YOUR CAPACITY</small><h2>Volunteer Profile</h2><form id="profile-form"><div class="grid"><label>Display Name<input id="name" required></label><label>Email<input id="email" disabled></label><label class="wide">Professional Background<textarea id="background" rows="3" required></textarea></label><label>Organization<input id="org"></label><label>Available Time<select id="hours"><option value="1">&lt;2 jam/bulan</option><option value="3">2–4 jam/bulan</option><option value="6.5">5–8 jam/bulan</option><option value="12.5">9–16 jam/bulan</option><option value="20">&gt;16 jam/bulan</option></select></label><fieldset class="wide"><legend>Preferred Contribution</legend><label><input type="checkbox" id="advisor"> Advisor / SME</label><label><input type="checkbox" id="ops"> Operational / Execution</label><label><input type="checkbox" id="lead"> Project Lead</label></fieldset><label class="wide">Skills<div id="skills" class="skills"><span>Skill catalog belum di-seed.</span></div></label><label class="wide check"><input type="checkbox" id="contact" checked> Bersedia dihubungi terkait kesempatan kontribusi.</label></div><button type="submit">Save Profile</button><span id="msg"></span></form></section>
-</main><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="volunteer.js"></script></body></html>
+</main>
+<div id="profile-match-modal" class="match-modal-backdrop" hidden>
+  <section class="match-modal-card" role="dialog" aria-modal="true"
+           aria-labelledby="profile-match-title">
+    <p class="match-modal-eyebrow">PROFILE UPDATED</p>
+    <h2 id="profile-match-title">Terima kasih sudah update profile.</h2>
+
+    <p id="profile-match-summary" class="match-modal-summary">
+      Profile kamu sudah tersimpan.
+    </p>
+
+    <div class="match-stat-grid">
+      <div class="match-stat">
+        <strong id="matched-project-count">0</strong>
+        <span>project cocok</span>
+      </div>
+      <div class="match-stat">
+        <strong id="active-project-count">0</strong>
+        <span>sedang aktif</span>
+      </div>
+    </div>
+
+    <p class="match-modal-note">
+      Matching menggunakan skill, preferred contribution mode, dan waktu
+      yang kamu sediakan. Assignment tetap membutuhkan approval DS /
+      project owner.
+    </p>
+
+    <div class="match-modal-actions">
+      <a id="find-opportunity-link"
+         class="match-primary-action"
+         href="opportunities.html?mode=capacity&use_profile=1">
+        Cari Opportunity
+      </a>
+      <button id="close-match-modal"
+              class="match-secondary-action"
+              type="button">
+        Nanti saja
+      </button>
+    </div>
+  </section>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="volunteer.js"></script></body></html>
