@@ -492,6 +492,17 @@ db.auth.onAuthStateChange(async(_event,session)=>{
   try{
     const {data,error}=await db.auth.getSession();if(error)throw error;state.session=data.session;
     await loadSkills();await loadOpportunities();await loadUserData();populateFilters();renderAuth();renderMode();
+
+    const params=new URLSearchParams(location.search);
+    if(
+      state.session &&
+      state.profile &&
+      params.get("mode")==="capacity" &&
+      params.get("use_profile")==="1"
+    ){
+      await useProfile();
+    }
+
     if(state.session)await handlePending();
   }catch(e){
     console.error(e);
