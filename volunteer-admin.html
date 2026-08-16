@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>Volunteer Admin · SAI Cipedak</title>
+  <link rel="stylesheet" href="volunteer-admin.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="shell topbar-inner">
+      <div>
+        <p class="eyebrow">SAI CIPEDAK · VOLUNTEER</p>
+        <h1>Volunteer Admin</h1>
+      </div>
+
+      <div class="topbar-actions">
+        <a href="admin.html" class="top-link">KPI Admin</a>
+        <a href="opportunities.html?mode=kpi" class="top-link">Public Opportunities ↗</a>
+
+        <div id="session-controls" class="session-controls" hidden>
+          <div class="session-user">
+            <strong id="user-name"></strong>
+            <span id="user-role"></span>
+          </div>
+          <button id="logout-button" class="secondary-button" type="button">
+            Sign out
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="shell main-shell">
+    <section id="login-panel" class="auth-card">
+      <p class="eyebrow">AUTHENTICATION</p>
+      <h2>Sign in with Google</h2>
+      <p class="muted">
+        Volunteer operations hanya tersedia untuk Editor dan Admin.
+      </p>
+      <button id="google-login-button" class="google-button" type="button">
+        Continue with Google
+      </button>
+      <p id="login-message" class="form-message"></p>
+    </section>
+
+    <section id="admin-app" hidden>
+      <section class="summary-grid">
+        <article class="summary-card">
+          <span>Open Opportunities</span>
+          <strong id="open-count">0</strong>
+          <small>visible to public</small>
+        </article>
+        <article class="summary-card">
+          <span>Draft / Paused</span>
+          <strong id="inactive-count">0</strong>
+          <small>not accepting joins</small>
+        </article>
+        <article class="summary-card">
+          <span>Pending Applications</span>
+          <strong id="pending-count">0</strong>
+          <small>awaiting review</small>
+        </article>
+        <article class="summary-card">
+          <span>Active Contributors</span>
+          <strong id="contributor-count">0</strong>
+          <small>assigned metrics</small>
+        </article>
+      </section>
+
+      <nav class="tabbar">
+        <button id="tab-opportunities" class="tab-button active" type="button">
+          Opportunity Management
+        </button>
+        <button id="tab-applications" class="tab-button" type="button">
+          Volunteer Applications
+          <span id="pending-tab-badge" class="tab-badge">0</span>
+        </button>
+      </nav>
+
+      <!-- ==================================================== -->
+      <!-- Opportunity Management -->
+      <!-- ==================================================== -->
+      <section id="opportunity-panel">
+        <section class="panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">OPPORTUNITY MANAGEMENT</p>
+              <h2>Metric-level volunteering</h2>
+            </div>
+            <span class="muted">
+              Open hanya metric yang memang aman dan layak untuk kontribusi publik.
+            </span>
+          </div>
+
+          <div class="filter-grid">
+            <label class="wide">
+              <span>Cari KPI / Metric</span>
+              <input id="opportunity-search" type="search"
+                     placeholder="KPI ID, metric, opportunity..." />
+            </label>
+
+            <label>
+              <span>Cluster</span>
+              <select id="opportunity-cluster-filter">
+                <option value="">Semua cluster</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Status</span>
+              <select id="opportunity-status-filter">
+                <option value="">Semua status</option>
+                <option value="draft">Draft</option>
+                <option value="open">Open</option>
+                <option value="paused">Paused</option>
+                <option value="closed">Closed</option>
+                <option value="filled">Filled</option>
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <div class="two-column-layout">
+          <section class="panel list-panel">
+            <div class="list-heading">
+              <strong id="opportunity-result-count">0 opportunities</strong>
+            </div>
+            <div id="opportunity-list" class="record-list"></div>
+          </section>
+
+          <section id="opportunity-editor" class="panel editor-panel" hidden>
+            <div class="section-heading">
+              <div>
+                <p id="editor-kpi-id" class="eyebrow">—</p>
+                <h2 id="editor-metric-name">—</h2>
+                <p id="editor-kpi-title" class="muted"></p>
+              </div>
+              <div id="editor-badges" class="badge-row"></div>
+            </div>
+
+            <form id="opportunity-form">
+              <div class="form-grid">
+                <label>
+                  <span>Status *</span>
+                  <select id="editor-status" required>
+                    <option value="draft">Draft</option>
+                    <option value="open">Open</option>
+                    <option value="paused">Paused</option>
+                    <option value="closed">Closed</option>
+                    <option value="filled">Filled</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Volunteer Slots</span>
+                  <input id="editor-slots" type="number" min="1" step="1" />
+                </label>
+
+                <label class="wide">
+                  <span>Opportunity Title *</span>
+                  <input id="editor-title" type="text" required />
+                </label>
+
+                <label class="wide">
+                  <span>Short Description</span>
+                  <textarea id="editor-description" rows="3"></textarea>
+                </label>
+
+                <label>
+                  <span>Min Hours / Month</span>
+                  <input id="editor-min-hours" type="number"
+                         min="0" step="0.5" />
+                </label>
+
+                <label>
+                  <span>Max Hours / Month</span>
+                  <input id="editor-max-hours" type="number"
+                         min="0" step="0.5" />
+                </label>
+
+                <fieldset class="wide">
+                  <legend>Contribution Mode *</legend>
+                  <label class="check-row">
+                    <input id="editor-mode-advisor" type="checkbox" />
+                    <span>Advisor / SME</span>
+                  </label>
+                  <label class="check-row">
+                    <input id="editor-mode-operational" type="checkbox" />
+                    <span>Operational / Execution</span>
+                  </label>
+                  <label class="check-row">
+                    <input id="editor-mode-lead" type="checkbox" />
+                    <span>Project Lead</span>
+                  </label>
+                </fieldset>
+
+                <div class="wide">
+                  <span class="field-label">Skill Requirements *</span>
+                  <p class="field-help">
+                    Setiap skill dapat ditandai Required, Preferred, atau None.
+                  </p>
+                  <div id="editor-skill-tree" class="skill-tree"></div>
+                </div>
+
+                <label class="wide">
+                  <span>Public Note</span>
+                  <textarea id="editor-public-note" rows="3"
+                            placeholder="Informasi tambahan yang aman ditampilkan ke calon volunteer."></textarea>
+                </label>
+
+                <label class="wide">
+                  <span>Internal / Owner Note</span>
+                  <textarea id="editor-owner-note" rows="3"
+                            placeholder="Catatan internal; tidak tampil di public explorer."></textarea>
+                </label>
+              </div>
+
+              <div class="form-actions">
+                <span id="opportunity-message" class="form-message"></span>
+                <button class="primary-button" type="submit">
+                  Save Opportunity
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      </section>
+
+      <!-- ==================================================== -->
+      <!-- Applications -->
+      <!-- ==================================================== -->
+      <section id="application-panel" hidden>
+        <section class="panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">VOLUNTEER APPLICATIONS</p>
+              <h2>Review & assignment</h2>
+            </div>
+            <span class="muted">
+              Approve akan langsung membuat active metric contributor.
+            </span>
+          </div>
+
+          <div class="filter-grid">
+            <label class="wide">
+              <span>Cari</span>
+              <input id="application-search" type="search"
+                     placeholder="Nama, email, KPI, metric..." />
+            </label>
+
+            <label>
+              <span>Cluster</span>
+              <select id="application-cluster-filter">
+                <option value="">Semua cluster</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Status</span>
+              <select id="application-status-filter">
+                <option value="pending">Pending</option>
+                <option value="">Semua status</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+                <option value="withdrawn">Withdrawn</option>
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="list-heading">
+            <strong id="application-result-count">0 applications</strong>
+          </div>
+          <div id="application-list" class="application-list"></div>
+        </section>
+      </section>
+    </section>
+  </main>
+
+  <!-- Review modal -->
+  <div id="review-modal" class="modal-backdrop" hidden>
+    <section class="modal-card">
+      <div class="modal-heading">
+        <div>
+          <p id="review-eyebrow" class="eyebrow">APPLICATION REVIEW</p>
+          <h2 id="review-title">—</h2>
+        </div>
+        <button id="review-close" class="close-button" type="button">×</button>
+      </div>
+
+      <div id="review-context" class="review-context"></div>
+
+      <form id="review-form">
+        <div id="approval-fields" class="form-grid">
+          <label>
+            <span>Assigned Contribution Mode *</span>
+            <select id="review-mode"></select>
+          </label>
+          <label>
+            <span>Committed Hours / Month *</span>
+            <input id="review-hours" type="number"
+                   min="0.5" step="0.5" />
+          </label>
+        </div>
+
+        <label>
+          <span>Review / Assignment Note</span>
+          <textarea id="review-note" rows="4"></textarea>
+        </label>
+
+        <div class="form-actions">
+          <span id="review-message" class="form-message"></span>
+          <button id="review-submit" class="primary-button" type="submit">
+            Confirm
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="volunteer-admin.js"></script>
+</body>
+</html>
