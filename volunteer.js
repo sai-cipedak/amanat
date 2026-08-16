@@ -9,7 +9,12 @@ const els = {
   profile:$("profile"), form:$("profile-form"),
   name:$("name"), email:$("email"), background:$("background"),
   org:$("org"), hours:$("hours"), advisor:$("advisor"), ops:$("ops"),
-  lead:$("lead"), skills:$("skills"), contact:$("contact"), msg:$("msg")
+  lead:$("lead"), skills:$("skills"), contact:$("contact"), msg:$("msg"),
+  matchModal:$("profile-match-modal"),
+  matchSummary:$("profile-match-summary"),
+  matchedProjectCount:$("matched-project-count"),
+  activeProjectCount:$("active-project-count"),
+  closeMatchModal:$("close-match-modal")
 };
 
 const approxBucket = h => {
@@ -114,6 +119,157 @@ async function replaceRows(table,uid,rows){
   if(rows.length){const {error}=await db.from(table).insert(rows);if(error)throw error;}
 }
 
+
+function metricProgress(metric){
+  if(metric.progress_pct!==null&&metric.progress_pct!==undefined){
+    return Math.max(0,Math.min(100,Number(metric.progress_pct)));
+  }
+  if(metric.actual===null||metric.actual===undefined)return null;
+
+  const actual=Number(metric.actual);
+  const target=metric.target==null?null:Number(metric.target);
+  const baseline=metric.baseline==null?null:Number(metric.baseline);
+
+  switch(metric.measurement_direction){
+    case "binary":
+      return actual>=1?100:0;
+    case "milestone":
+      return target
+        ? Math.max(0,Math.min(100,(actual/target)*100))
+        : Math.max(0,Math.min(100,actual));
+    case "higher_is_better":
+      if(target===null)return null;
+      if(baseline!==null&&target!==baseline){
+        return Math.max(
+          0,
+          Math.min(100,((actual-baseline)/(target-baseline))*100)
+        );
+      }
+      return target>0
+        ? Math.max(0,Math.min(100,(actual/target)*100))
+        : null;
+    case "lower_is_better":
+      if(baseline===null||target===null||baseline===target)return null;
+      return Math.max(
+        0,
+        Math.min(100,((baseline-actual)/(baseline-target))*100)
+      );
+    case "target_is_exact":
+      return target!==null&&actual===target?100:0;
+    default:
+      return null;
+  }
+}
+
+function projectActivityState(projectMetrics,isActiveManual){
+  const metrics=Array.isArray(projectMetrics)?projectMetrics:[];
+
+  if(!metrics.length){
+    return isActiveManual?"active":"not_active";
+  }
+
+  const progressValues=metrics.map(metricProgress);
+
+  const completed=
+    progressValues.length>0 &&
+    progressValues.every(
+      progress=>progress!==null&&progress>=100
+    );
+
+  if(completed)return "completed";
+
+  const hasProgress=progressValues.some(
+    progress=>progress!==null&&progress>0
+  );
+
+  return isActiveManual||hasProgress
+    ? "active"
+    : "not_active";
+}
+
+async function calculateProfileMatches(skillIds,modes,availableHours){
+  const {data,error}=await db.rpc(
+    "get_open_volunteer_opportunities"
+  );
+
+  if(error){
+    console.error("Profile match calculation failed:",error);
+    return {
+      matchedProjects:0,
+      activeProjects:0,
+      calculationAvailable:false
+    };
+  }
+
+  const projects=new Map();
+
+  for(const opportunity of data||[]){
+    const opportunitySkills=Array.isArray(opportunity.skills)
+      ? opportunity.skills
+      : [];
+
+    const opportunityModes=Array.isArray(opportunity.contribution_modes)
+      ? opportunity.contribution_modes
+      : [];
+
+    // Skill overlap is required so the recommendation has a real capability basis.
+    const skillMatch=opportunitySkills.some(skill=>
+      skillIds.includes(Number(skill.id))
+    );
+
+    // No selected mode means "no preference", rather than "match nothing".
+    const modeMatch=
+      !modes.length ||
+      !opportunityModes.length ||
+      opportunityModes.some(mode=>modes.includes(mode));
+
+    const minimumHours=Number(opportunity.min_hours_month||0);
+    const timeMatch=Number(availableHours||0)>=minimumHours;
+
+    if(!skillMatch||!modeMatch||!timeMatch)continue;
+
+    const kpiId=opportunity.kpi_id;
+
+    if(!projects.has(kpiId)){
+      projects.set(kpiId,{
+        active:
+          projectActivityState(
+            opportunity.kpi_metrics,
+            Boolean(opportunity.kpi_is_active_manual)
+          )==="active"
+      });
+    }
+  }
+
+  const values=[...projects.values()];
+
+  return {
+    matchedProjects:values.length,
+    activeProjects:values.filter(project=>project.active).length,
+    calculationAvailable:true
+  };
+}
+
+function showProfileMatchModal(result){
+  els.matchedProjectCount.textContent=result.matchedProjects;
+  els.activeProjectCount.textContent=result.activeProjects;
+
+  if(!result.calculationAvailable){
+    els.matchSummary.textContent=
+      "Profile kamu sudah tersimpan. Matching opportunity belum bisa dihitung saat ini, tapi kamu tetap bisa melihat opportunity yang tersedia.";
+  }else if(result.matchedProjects===0){
+    els.matchSummary.textContent=
+      "Profile kamu sudah tersimpan. Saat ini belum ada open project yang match langsung dengan kombinasi skill, contribution mode, dan waktu yang kamu pilih.";
+  }else{
+    els.matchSummary.textContent=
+      `Profile kamu match dengan ${result.matchedProjects} project di SAI, `+
+      `${result.activeProjects} di antaranya sedang aktif berjalan. `+
+      `Klik Cari Opportunity untuk melihat project yang paling sesuai dengan profile kamu.`;
+  }
+
+  els.matchModal.hidden=false;
+}
+
 async function saveProfile(){
   const u=state.session?.user;if(!u)throw new Error("Login Google dulu.");
   const profile={
@@ -134,6 +290,12 @@ async function saveProfile(){
     replaceRows("volunteer_profile_contribution_modes",u.id,modes.map(contribution_mode=>({user_id:u.id,contribution_mode})))
   ]);
   state.profile=profile;state.skillIds=skillIds;state.modes=modes;
+
+  return await calculateProfileMatches(
+    skillIds,
+    modes,
+    profile.available_hours_month
+  );
 }
 
 els.login.onclick=async()=>{
@@ -150,10 +312,29 @@ els.login.onclick=async()=>{
 };
 els.logout.onclick=async()=>{await db.auth.signOut({scope:"local"});state.session=null;await render();};
 els.form.onsubmit=async e=>{
-  e.preventDefault();els.msg.textContent="Saving…";
-  try{await saveProfile();els.msg.textContent="Profile berhasil disimpan.";}
-  catch(err){els.msg.textContent=err.message;}
+  e.preventDefault();
+  els.msg.textContent="Saving…";
+
+  try{
+    const matchResult=await saveProfile();
+    els.msg.textContent="";
+    showProfileMatchModal(matchResult);
+  }catch(err){
+    console.error(err);
+    els.msg.textContent=err.message;
+  }
 };
+
+
+els.closeMatchModal.onclick=()=>{
+  els.matchModal.hidden=true;
+};
+
+els.matchModal.addEventListener("click",event=>{
+  if(event.target===els.matchModal){
+    els.matchModal.hidden=true;
+  }
+});
 
 db.auth.onAuthStateChange(async(_event,session)=>{state.session=session;await render();});
 (async()=>{
