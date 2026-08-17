@@ -1,0 +1,606 @@
+
+/* ============================================================
+   SAI Cipedak — Brand Theme
+   Palette supplied by Sekolah Alam Indonesia
+   Baltic Blue  #15589A
+   Black        #000000
+   Red          #FF0000
+   Lime Moss    #7A9906
+   Cobalt Blue  #0D45B4
+   ============================================================ */
+
+:root {
+  --sai-baltic: #15589A;
+  --sai-black: #000000;
+  --sai-red: #FF0000;
+  --sai-lime: #7A9906;
+  --sai-cobalt: #0D45B4;
+
+  --bg: #F5F7FA !important;
+  --surface: #FFFFFF !important;
+  --surface-soft: #F7F9FC !important;
+  --soft: #F7F9FC !important;
+  --text: #111820 !important;
+  --muted: #66717D !important;
+  --line: #DCE3EA !important;
+
+  --accent: var(--sai-baltic) !important;
+  --accent2: var(--sai-cobalt) !important;
+  --accent-dark: #104779 !important;
+  --accent-soft: rgba(21, 88, 154, .09) !important;
+  --accentsoft: rgba(21, 88, 154, .09) !important;
+
+  --warning: #6C8108 !important;
+  --warning-soft: rgba(122, 153, 6, .12) !important;
+  --warn: #6C8108 !important;
+  --warnsoft: rgba(122, 153, 6, .12) !important;
+
+  --danger: #C90000 !important;
+  --danger-soft: rgba(255, 0, 0, .08) !important;
+
+  --radius: 14px !important;
+  --shadow: 0 8px 24px rgba(17, 24, 32, .055) !important;
+}
+
+html {
+  background: var(--bg);
+}
+
+body {
+  background:
+    radial-gradient(circle at 10% 0%, rgba(21,88,154,.035), transparent 28rem),
+    var(--bg) !important;
+  color: var(--text) !important;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* ---------- Brand header ---------- */
+
+.site-header,
+.topbar,
+.page-header,
+body > header {
+  background: #FFFFFF !important;
+  color: var(--text) !important;
+  border-bottom: 4px solid var(--sai-baltic);
+  box-shadow: 0 3px 14px rgba(17, 24, 32, .055);
+}
+
+.site-header {
+  padding: 22px 0 20px !important;
+}
+
+.topbar,
+.page-header,
+body > header {
+  padding-top: 16px !important;
+  padding-bottom: 16px !important;
+}
+
+.header-inner,
+.topbar-inner,
+.head {
+  align-items: center !important;
+}
+
+.sai-brand-block {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  min-width: 0;
+}
+
+.sai-brand-logo {
+  display: block;
+  width: 190px;
+  height: auto;
+  flex: 0 0 auto;
+}
+
+.sai-page-identity {
+  min-width: 0;
+  padding-left: 20px;
+  border-left: 1px solid var(--line);
+}
+
+.sai-page-identity h1,
+.site-header h1,
+.topbar h1,
+.page-header h1,
+body > header h1 {
+  margin: 0 !important;
+  color: var(--sai-black) !important;
+  font-size: clamp(24px, 3vw, 34px) !important;
+  line-height: 1.06;
+  letter-spacing: -.035em !important;
+}
+
+.sai-page-identity .header-copy {
+  margin-top: 6px !important;
+  color: var(--muted) !important;
+  font-size: 12px;
+}
+
+.eyebrow,
+body > header small {
+  color: var(--sai-baltic) !important;
+  opacity: 1 !important;
+  font-weight: 900 !important;
+  letter-spacing: .105em !important;
+}
+
+.header-actions,
+.topbar-actions,
+.head-actions,
+.auth-actions,
+.section-actions {
+  align-items: center !important;
+}
+
+.header-link,
+.top-link,
+.dashboard-link,
+.head a,
+body > header a {
+  color: var(--sai-baltic) !important;
+  font-weight: 800 !important;
+  text-decoration: none;
+}
+
+.header-link:hover,
+.top-link:hover,
+.dashboard-link:hover,
+.head a:hover,
+body > header a:hover {
+  color: var(--sai-cobalt) !important;
+}
+
+/* ---------- Navigation / CTA ---------- */
+
+.header-cta,
+.primary-button,
+.primary,
+.google-button,
+#login,
+button[type="submit"]:not(.secondary-button):not(.reject-button) {
+  border-color: var(--sai-cobalt) !important;
+  background: var(--sai-cobalt) !important;
+  color: #FFFFFF !important;
+  box-shadow: none !important;
+}
+
+.header-cta:hover,
+.primary-button:hover,
+.primary:hover,
+.google-button:hover,
+#login:hover,
+button[type="submit"]:not(.secondary-button):not(.reject-button):hover {
+  border-color: var(--sai-baltic) !important;
+  background: var(--sai-baltic) !important;
+}
+
+.secondary-button,
+.secondary,
+.textbtn,
+.match-secondary-action {
+  border-color: #C9D4DE !important;
+  background: #FFFFFF !important;
+  color: var(--sai-baltic) !important;
+}
+
+.secondary-button:hover,
+.secondary:hover {
+  border-color: var(--sai-baltic) !important;
+  background: rgba(21, 88, 154, .05) !important;
+}
+
+.text-button,
+.textbtn {
+  color: var(--sai-baltic) !important;
+}
+
+/* ---------- Layout ---------- */
+
+.shell {
+  width: min(1220px, calc(100% - 36px)) !important;
+}
+
+main,
+.main-shell {
+  padding-top: 26px !important;
+}
+
+.card,
+.auth-card,
+.panel,
+.summary-card,
+.kpi-card,
+.opportunity-card,
+.results-heading,
+.auth-strip,
+.filter-panel,
+.state-card,
+.application-card {
+  border-color: var(--line) !important;
+  border-radius: 14px !important;
+  box-shadow: var(--shadow) !important;
+}
+
+.panel,
+.card,
+.auth-card {
+  background: #FFFFFF !important;
+}
+
+.panel:hover,
+.kpi-card:hover,
+.opportunity-card:hover {
+  border-color: #C6D6E5 !important;
+}
+
+/* ---------- Summary cards ---------- */
+
+.summary-card {
+  position: relative;
+  overflow: hidden;
+  padding-top: 20px !important;
+}
+
+.summary-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: var(--sai-baltic);
+}
+
+.summary-card:nth-child(2)::before {
+  background: var(--sai-lime);
+}
+
+.summary-card:nth-child(3)::before {
+  background: var(--sai-cobalt);
+}
+
+.summary-card:nth-child(4)::before {
+  background: var(--sai-baltic);
+}
+
+.summary-card-accent {
+  border-color: var(--sai-cobalt) !important;
+  background: var(--sai-cobalt) !important;
+  color: #FFFFFF !important;
+}
+
+.summary-card-accent::before {
+  background: var(--sai-lime);
+}
+
+.summary-card strong {
+  color: var(--sai-black);
+}
+
+.summary-card-accent strong {
+  color: #FFFFFF !important;
+}
+
+/* ---------- Headings ---------- */
+
+h2, h3, h4 {
+  color: var(--sai-black);
+}
+
+.section-heading h2 {
+  font-size: clamp(18px, 2vw, 24px);
+}
+
+.muted,
+.field-help,
+.header-copy {
+  color: var(--muted) !important;
+}
+
+/* ---------- Forms ---------- */
+
+input,
+select,
+textarea {
+  border-color: #D4DCE5 !important;
+  background: #FFFFFF !important;
+  color: var(--text) !important;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--sai-baltic) !important;
+  box-shadow: 0 0 0 3px rgba(21, 88, 154, .11) !important;
+}
+
+label > span,
+.field-label,
+legend {
+  color: #526170 !important;
+}
+
+/* ---------- Tabs / segmented controls ---------- */
+
+.mode-bar,
+.tabbar {
+  border-color: #D4DCE5 !important;
+  background: #FFFFFF !important;
+}
+
+.mode-button.active,
+.tab-button.active {
+  background: var(--sai-baltic) !important;
+  color: #FFFFFF !important;
+}
+
+/* ---------- Progress ---------- */
+
+.progress-track {
+  background: #E7ECF1 !important;
+}
+
+.progress-bar {
+  background: linear-gradient(
+    90deg,
+    var(--sai-baltic),
+    var(--sai-cobalt)
+  ) !important;
+}
+
+.cluster-row .progress-bar {
+  background: var(--sai-lime) !important;
+}
+
+/* ---------- Badges / pills ---------- */
+
+.badge,
+.pill,
+.skill-tag,
+.mode-tag,
+.tag {
+  border-color: #D6DEE6 !important;
+}
+
+.badge.active,
+.badge.open,
+.badge.approved,
+.badge.completed,
+.skill-tag.required {
+  background: rgba(122, 153, 6, .12) !important;
+  color: #5D7305 !important;
+}
+
+.badge.priority {
+  background: rgba(21, 88, 154, .10) !important;
+  color: var(--sai-baltic) !important;
+}
+
+.badge.rejected,
+.error-card,
+.error-state {
+  background: rgba(255, 0, 0, .055) !important;
+  color: #B00000 !important;
+}
+
+.application-status {
+  color: var(--sai-baltic) !important;
+}
+
+/* ---------- KPI cards ---------- */
+
+.kpi-card {
+  overflow: hidden;
+}
+
+.kpi-card-header {
+  background: #FFFFFF !important;
+}
+
+.kpi-card-header:hover {
+  background: rgba(21, 88, 154, .025) !important;
+}
+
+.kpi-id {
+  color: var(--sai-baltic) !important;
+  font-weight: 900 !important;
+}
+
+.kpi-title,
+.metric-name {
+  color: var(--sai-black) !important;
+}
+
+/* ---------- Opportunity ---------- */
+
+.opportunity-card {
+  border-left: 4px solid transparent !important;
+}
+
+.opportunity-card:hover {
+  border-left-color: var(--sai-baltic) !important;
+}
+
+.deep-link-focus {
+  border-color: var(--sai-cobalt) !important;
+  border-left-width: 4px !important;
+}
+
+.deep-link-banner {
+  border-color: rgba(21,88,154,.30) !important;
+  background: rgba(21,88,154,.075) !important;
+  color: var(--sai-baltic) !important;
+}
+
+.match-score strong {
+  color: var(--sai-baltic);
+}
+
+/* ---------- Skills accordion ---------- */
+
+.skill-family {
+  border-color: #DCE3EA !important;
+}
+
+.skill-family > summary {
+  background: #FFFFFF !important;
+}
+
+.skill-family[open] > summary {
+  color: var(--sai-baltic) !important;
+}
+
+.skill-family-body {
+  background: #F8FAFC !important;
+}
+
+.skill-option:hover,
+.skill-requirement-row:hover {
+  background: rgba(21, 88, 154, .05) !important;
+}
+
+/* ---------- Session ---------- */
+
+.session-user strong {
+  color: var(--sai-black) !important;
+}
+
+.session-user span {
+  color: var(--muted) !important;
+  opacity: 1 !important;
+}
+
+/* ---------- Auth strip ---------- */
+
+.auth-strip {
+  border-left: 4px solid var(--sai-baltic) !important;
+}
+
+/* ---------- Modal ---------- */
+
+.modal-backdrop,
+.match-modal-backdrop {
+  background: rgba(0, 0, 0, .44) !important;
+  backdrop-filter: blur(2px);
+}
+
+.modal-card,
+.match-modal-card {
+  border: 1px solid var(--line);
+  border-radius: 16px !important;
+}
+
+.match-modal-eyebrow {
+  color: var(--sai-baltic) !important;
+}
+
+.match-stat strong {
+  color: var(--sai-baltic) !important;
+}
+
+.match-primary-action {
+  border-color: var(--sai-cobalt) !important;
+  background: var(--sai-cobalt) !important;
+}
+
+/* ---------- Footer ---------- */
+
+footer {
+  border-top: 1px solid var(--line) !important;
+  background: #FFFFFF !important;
+  color: var(--muted) !important;
+}
+
+/* ---------- Brand utility ---------- */
+
+.sai-accent-rule {
+  display: flex;
+  width: 70px;
+  height: 4px;
+  overflow: hidden;
+  margin-top: 10px;
+  border-radius: 999px;
+}
+
+.sai-accent-rule::before,
+.sai-accent-rule::after {
+  content: "";
+  flex: 1;
+}
+
+.sai-accent-rule::before {
+  background: var(--sai-baltic);
+}
+
+.sai-accent-rule::after {
+  background: var(--sai-lime);
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 820px) {
+  .sai-brand-block {
+    align-items: flex-start;
+  }
+
+  .sai-brand-logo {
+    width: 150px;
+  }
+
+  .sai-page-identity {
+    padding-left: 14px;
+  }
+
+  .header-inner,
+  .topbar-inner,
+  .head {
+    gap: 16px !important;
+  }
+}
+
+@media (max-width: 650px) {
+  .shell {
+    width: min(100% - 24px, 1220px) !important;
+  }
+
+  .site-header,
+  .topbar,
+  .page-header,
+  body > header {
+    padding: 13px 0 !important;
+  }
+
+  .sai-brand-block {
+    width: 100%;
+  }
+
+  .sai-brand-logo {
+    width: 118px;
+  }
+
+  .sai-page-identity {
+    padding-left: 12px;
+  }
+
+  .sai-page-identity h1,
+  .site-header h1,
+  .topbar h1,
+  .page-header h1,
+  body > header h1 {
+    font-size: 22px !important;
+  }
+
+  .sai-page-identity .header-copy {
+    display: none;
+  }
+
+  .topbar-actions,
+  .header-actions,
+  .head-actions {
+    width: 100%;
+  }
+}

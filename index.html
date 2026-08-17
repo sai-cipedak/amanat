@@ -6,20 +6,31 @@
   <meta name="description" content="Dashboard Amanat Muskom 2026 SAI Cipedak" />
   <title>SAI Cipedak — KPI Tracker</title>
   <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="sai-theme.css" />
 </head>
 <body>
   <header class="site-header">
     <div class="shell header-inner">
-      <div>
-        <p class="eyebrow">SAI CIPEDAK · AMANAT MUSKOM 2026</p>
-        <h1>KPI Tracker</h1>
-        <p class="header-copy">
-          Transparansi pelaksanaan amanat, capaian KPI, dan bukti progres komunitas.
-        </p>
+      <div class="sai-brand-block">
+        <img src="sai-logo-web.png"
+             alt="Sekolah Alam Indonesia"
+             class="sai-brand-logo" />
+        <div class="sai-page-identity">
+          <p class="eyebrow">SAI CIPEDAK · AMANAT MUSKOM 2026</p>
+          <h1>KPI Tracker</h1>
+          <p class="header-copy">
+            Transparansi pelaksanaan amanat, capaian KPI, dan bukti progres komunitas.
+          </p>
+          <span class="sai-accent-rule" aria-hidden="true"></span>
+        </div>
       </div>
-      <div class="last-updated">
-        <span>Data refreshed</span>
-        <strong id="last-updated">—</strong>
+
+      <div class="header-actions">
+        <a href="volunteer.html" class="secondary-button">Volunteer</a>
+        <div class="last-updated">
+          <span>Data refreshed</span>
+          <strong id="last-updated">—</strong>
+        </div>
       </div>
     </div>
   </header>
@@ -53,7 +64,7 @@
       <article class="summary-card summary-card-accent">
         <span class="summary-label">Overall Progress</span>
         <strong id="overall-progress">—</strong>
-        <small>Seluruh KPI menjadi denominator</small>
+        <small>Seluruh KPI portfolio</small>
       </article>
     </section>
 
@@ -64,7 +75,7 @@
           <h2>Progress per Cluster</h2>
         </div>
         <p class="muted">
-          Progress KPI dihitung bila seluruh metric di dalamnya memiliki data yang dapat dihitung. KPI yang belum terukur tetap berkontribusi 0% pada agregasi overall dan cluster progress.
+          Progress hanya dihitung bila seluruh metric dalam KPI sudah memiliki data yang dapat dihitung.
         </p>
       </div>
       <div id="cluster-progress" class="cluster-list"></div>
@@ -115,25 +126,6 @@
         </label>
 
         <label>
-          <span>Priority</span>
-          <select id="priority-filter">
-            <option value="">Semua</option>
-            <option value="priority">Project Prioritas</option>
-            <option value="less_priority">Less Priority</option>
-          </select>
-        </label>
-
-        <label>
-          <span>Project Status</span>
-          <select id="activity-filter">
-            <option value="">Semua</option>
-            <option value="active">Project Active</option>
-            <option value="not_active">Belum Active</option>
-            <option value="completed">Completed</option>
-          </select>
-        </label>
-
-        <label>
           <span>Data Status</span>
           <select id="data-filter">
             <option value="">Semua</option>
@@ -177,8 +169,6 @@
             <span class="kpi-id"></span>
             <span class="pill kpi-type"></span>
             <span class="pill responsibility"></span>
-            <span class="pill project-priority-flag"></span>
-            <span class="pill project-activity-flag"></span>
           </div>
           <h3 class="kpi-title"></h3>
           <p class="kpi-mandate"></p>
