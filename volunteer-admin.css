@@ -536,3 +536,7 @@ fieldset{
   .tab-button{flex:1}
   .badge-row{justify-content:flex-start}
 }
+
+.button-group{display:flex;gap:8px;flex-wrap:wrap}
+#share-link{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:10px;background:var(--soft)}
+@media(max-width:680px){.button-group{width:100%;flex-direction:column}.button-group button{width:100%}}

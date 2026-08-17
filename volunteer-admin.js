@@ -69,6 +69,18 @@ const els = {
   editorPublicNote: $("editor-public-note"),
   editorOwnerNote: $("editor-owner-note"),
   opportunityMessage: $("opportunity-message"),
+  shareOpportunityButton: $("share-opportunity-button"),
+  shareModal: $("share-modal"),
+  shareClose: $("share-close"),
+  shareTitle: $("share-title"),
+  shareContext: $("share-context"),
+  shareMode: $("share-mode"),
+  shareSource: $("share-source"),
+  shareCampaign: $("share-campaign"),
+  shareLink: $("share-link"),
+  shareMessage: $("share-message"),
+  copyShareLink: $("copy-share-link"),
+  publishShareButton: $("publish-share-button"),
 
   applicationSearch: $("application-search"),
   applicationCluster: $("application-cluster-filter"),
@@ -507,6 +519,160 @@ async function saveOpportunity() {
   await reloadData();
 }
 
+
+function normalizeShareParam(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9._-]/g, "")
+    .slice(0, 80);
+}
+
+function allowedOpportunityModes(row) {
+  return Array.isArray(row?.contribution_modes)
+    ? row.contribution_modes
+    : [];
+}
+
+function buildShareUrl() {
+  const row = selectedOpportunity();
+  if (!row) return "";
+
+  const url = new URL("opportunities.html", window.location.href);
+  url.searchParams.set("mode", "kpi");
+  url.searchParams.set("opportunity", String(row.opportunity_id));
+
+  const mode = els.shareMode.value;
+  const source = normalizeShareParam(els.shareSource.value);
+  const campaign = normalizeShareParam(els.shareCampaign.value);
+
+  if (mode) url.searchParams.set("contribution_mode", mode);
+  if (source) url.searchParams.set("source", source);
+  if (campaign) url.searchParams.set("campaign", campaign);
+
+  return url.toString();
+}
+
+function refreshShareLink() {
+  els.shareLink.value = buildShareUrl();
+}
+
+function openShareModal() {
+  const row = selectedOpportunity();
+  if (!row) return;
+
+  const modes = allowedOpportunityModes(row);
+
+  els.shareTitle.textContent =
+    row.opportunity_status === "open"
+      ? "Share Opportunity"
+      : "Publish & Share Opportunity";
+
+  els.shareContext.innerHTML = `
+    <strong>${esc(row.kpi_id)} · ${esc(row.kpi_title)}</strong><br>
+    ${esc(row.metric_id)} · ${esc(row.opportunity_title)}<br>
+    Current status: <strong>${esc(row.opportunity_status)}</strong>
+  `;
+
+  els.shareMode.innerHTML =
+    `<option value="">Semua allowed mode</option>` +
+    modes.map(mode => `
+      <option value="${esc(mode)}">
+        ${esc(MODE_LABELS[mode] || mode)}
+      </option>
+    `).join("");
+
+  els.shareSource.value = "";
+  els.shareCampaign.value = "";
+
+  els.publishShareButton.textContent =
+    row.opportunity_status === "open"
+      ? "Copy Link"
+      : row.opportunity_status === "paused"
+        ? "Resume & Copy"
+        : "Publish & Copy";
+
+  const disabled = ["closed", "filled"].includes(row.opportunity_status);
+  els.publishShareButton.disabled = disabled;
+  els.copyShareLink.disabled = row.opportunity_status !== "open";
+
+  setMessage(
+    els.shareMessage,
+    disabled ? "Closed / Filled opportunity tidak dapat dibagikan." : ""
+  );
+
+  refreshShareLink();
+  els.shareModal.hidden = false;
+}
+
+async function copyText(value) {
+  if (!value) throw new Error("Link belum tersedia.");
+
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(value);
+    return;
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = value;
+  document.body.appendChild(textarea);
+  textarea.select();
+  document.execCommand("copy");
+  textarea.remove();
+}
+
+async function publishAndCopy() {
+  const row = selectedOpportunity();
+  if (!row) throw new Error("Pilih opportunity dulu.");
+
+  if (["closed", "filled"].includes(row.opportunity_status)) {
+    throw new Error("Closed / Filled opportunity tidak dapat dipublish.");
+  }
+
+  if (row.opportunity_status !== "open") {
+    const skills = collectSkillRequirements();
+    const modes = collectModes();
+
+    const minHours = els.editorMinHours.value === ""
+      ? null : Number(els.editorMinHours.value);
+    const maxHours = els.editorMaxHours.value === ""
+      ? null : Number(els.editorMaxHours.value);
+    const slots = els.editorSlots.value === ""
+      ? null : Number(els.editorSlots.value);
+
+    const { error } = await volunteerAdminSupabase.rpc(
+      "save_volunteer_opportunity",
+      {
+        p_opportunity_id: row.opportunity_id,
+        p_status: "open",
+        p_opportunity_title: els.editorTitle.value.trim(),
+        p_short_description: els.editorDescription.value.trim() || null,
+        p_min_hours_month: minHours,
+        p_max_hours_month: maxHours,
+        p_volunteer_slots: slots,
+        p_public_note: els.editorPublicNote.value.trim() || null,
+        p_owner_note: els.editorOwnerNote.value.trim() || null,
+        p_required_skill_ids: skills.required,
+        p_preferred_skill_ids: skills.preferred,
+        p_contribution_modes: modes
+      }
+    );
+
+    if (error) throw error;
+    await reloadData();
+  }
+
+  refreshShareLink();
+  await copyText(els.shareLink.value);
+
+  setMessage(
+    els.shareMessage,
+    "Opportunity sudah Open dan link berhasil dicopy.",
+    "success"
+  );
+}
+
 function filteredApplications() {
   const q = els.applicationSearch.value.trim().toLowerCase();
   const cluster = els.applicationCluster.value;
@@ -586,6 +752,13 @@ function renderApplicationList() {
       <div class="application-project">
         <strong>${esc(row.kpi_id)} · ${esc(row.kpi_title)}</strong><br>
         ${esc(row.metric_id)} · ${esc(row.opportunity_title)}
+        ${row.application_source || row.campaign
+          ? `<br><small>
+               Source: ${esc(row.application_source || "—")}
+               ${row.campaign ? ` · Campaign: ${esc(row.campaign)}` : ""}
+             </small>`
+          : ""
+        }
       </div>
 
       <div class="application-grid">
@@ -911,6 +1084,46 @@ els.reviewForm.addEventListener("submit", async event => {
   } catch (error) {
     console.error(error);
     setMessage(els.reviewMessage, error.message, "error");
+  }
+});
+
+
+els.shareOpportunityButton.addEventListener("click", openShareModal);
+
+[els.shareMode, els.shareSource, els.shareCampaign].forEach(input => {
+  input.addEventListener(
+    input.tagName === "SELECT" ? "change" : "input",
+    refreshShareLink
+  );
+});
+
+els.shareClose.addEventListener("click", () => {
+  els.shareModal.hidden = true;
+});
+
+els.shareModal.addEventListener("click", event => {
+  if (event.target === els.shareModal) {
+    els.shareModal.hidden = true;
+  }
+});
+
+els.copyShareLink.addEventListener("click", async () => {
+  try {
+    refreshShareLink();
+    await copyText(els.shareLink.value);
+    setMessage(els.shareMessage, "Link berhasil dicopy.", "success");
+  } catch (error) {
+    setMessage(els.shareMessage, error.message, "error");
+  }
+});
+
+els.publishShareButton.addEventListener("click", async () => {
+  try {
+    setMessage(els.shareMessage, "Publishing…");
+    await publishAndCopy();
+  } catch (error) {
+    console.error(error);
+    setMessage(els.shareMessage, error.message, "error");
   }
 });
 

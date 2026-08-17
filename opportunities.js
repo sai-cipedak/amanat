@@ -17,7 +17,11 @@ const state = {
   filtered: [],
   applications: [],
   selectedOpportunity: null,
-  pendingJoinId: sessionStorage.getItem("saiVolunteerPendingJoin")
+  pendingJoinId: sessionStorage.getItem("saiVolunteerPendingJoin"),
+  deepLinkOpportunityId: new URLSearchParams(location.search).get("opportunity"),
+  deepLinkMode: new URLSearchParams(location.search).get("contribution_mode"),
+  deepLinkSource: new URLSearchParams(location.search).get("source"),
+  deepLinkCampaign: new URLSearchParams(location.search).get("campaign")
 };
 
 const $ = id => document.getElementById(id);
@@ -293,7 +297,16 @@ function renderList(){
   els.list.innerHTML=state.filtered.map(o=>{
     const act=activityState(o.kpi),app=appFor(o.id),match=matchScore(o);
     const matchBlock=state.mode==="capacity"?`<div class="match-score"><strong>${match.percent}%</strong><span>${match.label}</span></div>`:"";
-    return`<article class="opportunity-card">
+    const isFocused =
+      String(o.id) === String(state.deepLinkOpportunityId);
+
+    return`<article class="opportunity-card ${isFocused ? "deep-link-focus" : ""}" id="opportunity-${o.id}">
+      ${isFocused
+        ? `<div class="deep-link-banner">
+             Kamu membuka lowongan ini dari link yang dibagikan project owner.
+           </div>`
+        : ""
+      }
       <div class="card-top"><div>
         <div class="card-badges">
           <span class="badge ${o.kpi.is_priority?"priority":""}">${o.kpi.is_priority?"★ Prioritas":"◇ Less Priority"}</span>
@@ -318,6 +331,31 @@ function renderList(){
   els.list.querySelectorAll("[data-join]").forEach(btn=>btn.addEventListener("click",async()=>{
     const o=state.opportunities.find(x=>Number(x.id)===Number(btn.dataset.join));if(o)await beginJoin(o);
   }));
+}
+
+
+function focusDeepLinkedOpportunity(){
+  if(!state.deepLinkOpportunityId)return;
+
+  const target=state.opportunities.find(
+    row=>String(row.id)===String(state.deepLinkOpportunityId)
+  );
+
+  if(!target)return;
+
+  if(!state.filtered.some(
+    row=>String(row.id)===String(target.id)
+  )){
+    state.filtered=[target,...state.filtered];
+    renderList();
+  }
+
+  requestAnimationFrame(()=>{
+    const card=document.getElementById(`opportunity-${target.id}`);
+    if(card){
+      card.scrollIntoView({behavior:"smooth",block:"center"});
+    }
+  });
 }
 
 function renderMode(){
@@ -420,7 +458,17 @@ function openJoin(o){
   state.selectedOpportunity=o;els.joinTitle.textContent=o.opportunity_title;
   els.joinContext.innerHTML=`<strong>${esc(o.kpi.id)}</strong> · ${esc(o.kpi.title)}<br>Metric: ${esc(o.metric.metric_name)}<br>${esc(hoursText(o))}`;
   els.joinMode.innerHTML=o.modes.map(m=>`<option value="${esc(m)}">${esc(MODE_LABELS[m]||m)}</option>`).join("");
-  const pref=o.modes.find(m=>state.profileModes.includes(m));if(pref)els.joinMode.value=pref;
+  const deepLinkPreferred =
+    state.deepLinkMode &&
+    o.modes.includes(state.deepLinkMode)
+      ? state.deepLinkMode
+      : null;
+
+  const pref =
+    deepLinkPreferred ||
+    o.modes.find(m=>state.profileModes.includes(m));
+
+  if(pref)els.joinMode.value=pref;
   els.joinHours.value=Math.max(Number(o.min_hours_month||.5),Number(state.profile?.available_hours_month||1));
   els.joinMotivation.value="";els.joinCommitment.checked=false;
   els.joinContact.checked=state.profile?.willing_to_be_contacted!==false;
@@ -430,9 +478,19 @@ function openJoin(o){
 async function submitApplication(){
   const o=state.selectedOpportunity,u=state.session?.user;
   if(!o||!u||!state.profile)throw new Error("Profile atau opportunity tidak tersedia.");
-  const payload={opportunity_id:o.id,user_id:u.id,contribution_mode:els.joinMode.value,
-    offered_hours_month:Number(els.joinHours.value),motivation:els.joinMotivation.value.trim()||null,
-    commitment_confirmed:els.joinCommitment.checked,contact_consent:els.joinContact.checked,status:"pending"};
+  const payload={
+    opportunity_id:o.id,
+    user_id:u.id,
+    contribution_mode:els.joinMode.value,
+    offered_hours_month:Number(els.joinHours.value),
+    motivation:els.joinMotivation.value.trim()||null,
+    commitment_confirmed:els.joinCommitment.checked,
+    contact_consent:els.joinContact.checked,
+    status:"pending",
+    application_source:state.deepLinkSource||null,
+    campaign:state.deepLinkCampaign||null,
+    landing_contribution_mode:state.deepLinkMode||null
+  };
   const {error}=await db.from("volunteer_applications").insert(payload);if(error)throw error;
   await loadUserData();els.joinModal.hidden=true;
   sessionStorage.removeItem("saiVolunteerPendingJoin");state.pendingJoinId=null;
@@ -492,6 +550,7 @@ db.auth.onAuthStateChange(async(_event,session)=>{
   try{
     const {data,error}=await db.auth.getSession();if(error)throw error;state.session=data.session;
     await loadSkills();await loadOpportunities();await loadUserData();populateFilters();renderAuth();renderMode();
+    focusDeepLinkedOpportunity();
 
     const params=new URLSearchParams(location.search);
     if(

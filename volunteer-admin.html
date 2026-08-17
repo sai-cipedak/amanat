@@ -219,9 +219,14 @@
 
               <div class="form-actions">
                 <span id="opportunity-message" class="form-message"></span>
-                <button class="primary-button" type="submit">
-                  Save Opportunity
-                </button>
+                <div class="button-group">
+                  <button id="share-opportunity-button" class="secondary-button" type="button">
+                    Share Opportunity
+                  </button>
+                  <button class="primary-button" type="submit">
+                    Save Opportunity
+                  </button>
+                </div>
               </div>
             </form>
           </section>
@@ -279,6 +284,49 @@
       </section>
     </section>
   </main>
+
+
+  <div id="share-modal" class="modal-backdrop" hidden>
+    <section class="modal-card">
+      <div class="modal-heading">
+        <div>
+          <p class="eyebrow">PUBLISH & SHARE</p>
+          <h2 id="share-title">Share Opportunity</h2>
+        </div>
+        <button id="share-close" class="close-button" type="button">×</button>
+      </div>
+      <div id="share-context" class="review-context"></div>
+      <div class="form-grid">
+        <label>
+          <span>Contribution Mode</span>
+          <select id="share-mode"><option value="">Semua allowed mode</option></select>
+        </label>
+        <label>
+          <span>Source / Community</span>
+          <input id="share-source" type="text" placeholder="Contoh: whatsapp-dk8, famgath, ots30" />
+        </label>
+        <label class="wide">
+          <span>Campaign</span>
+          <input id="share-campaign" type="text" placeholder="Contoh: wbs-recruitment-aug26" />
+        </label>
+        <label class="wide">
+          <span>Generated Link</span>
+          <textarea id="share-link" rows="3" readonly></textarea>
+        </label>
+      </div>
+      <p class="field-help">
+        Opportunity ID dan destination path dikunci. Parameter source,
+        campaign, dan mode hanya untuk prefill / attribution, bukan akses.
+      </p>
+      <div class="form-actions">
+        <span id="share-message" class="form-message"></span>
+        <div class="button-group">
+          <button id="copy-share-link" class="secondary-button" type="button">Copy Link</button>
+          <button id="publish-share-button" class="primary-button" type="button">Publish & Copy</button>
+        </div>
+      </div>
+    </section>
+  </div>
 
   <!-- Review modal -->
   <div id="review-modal" class="modal-backdrop" hidden>
