@@ -15,6 +15,7 @@
         <img src="sai-logo-web.png"
              alt="Sekolah Alam Indonesia"
              class="sai-brand-logo" />
+
         <div class="sai-page-identity">
           <p class="eyebrow">SAI CIPEDAK · AMANAT MUSKOM 2026</p>
           <h1>KPI Tracker</h1>
@@ -26,7 +27,10 @@
       </div>
 
       <div class="header-actions">
-        <a href="volunteer.html" class="secondary-button">Volunteer</a>
+        <a href="volunteer.html" class="secondary-button">
+          Volunteer
+        </a>
+
         <div class="last-updated">
           <span>Data refreshed</span>
           <strong id="last-updated">—</strong>
@@ -75,7 +79,7 @@
           <h2>Progress per Cluster</h2>
         </div>
         <p class="muted">
-          Progress hanya dihitung bila seluruh metric dalam KPI sudah memiliki data yang dapat dihitung.
+          Progress KPI dihitung bila seluruh metric di dalamnya memiliki data yang dapat dihitung. KPI yang belum terukur tetap berkontribusi 0% pada agregasi overall dan cluster progress.
         </p>
       </div>
       <div id="cluster-progress" class="cluster-list"></div>
@@ -126,6 +130,25 @@
         </label>
 
         <label>
+          <span>Priority</span>
+          <select id="priority-filter">
+            <option value="">Semua</option>
+            <option value="priority">Project Prioritas</option>
+            <option value="less_priority">Less Priority</option>
+          </select>
+        </label>
+
+        <label>
+          <span>Project Status</span>
+          <select id="activity-filter">
+            <option value="">Semua</option>
+            <option value="active">Project Active</option>
+            <option value="not_active">Belum Active</option>
+            <option value="completed">Completed</option>
+          </select>
+        </label>
+
+        <label>
           <span>Data Status</span>
           <select id="data-filter">
             <option value="">Semua</option>
@@ -169,6 +192,8 @@
             <span class="kpi-id"></span>
             <span class="pill kpi-type"></span>
             <span class="pill responsibility"></span>
+            <span class="pill project-priority-flag"></span>
+            <span class="pill project-activity-flag"></span>
           </div>
           <h3 class="kpi-title"></h3>
           <p class="kpi-mandate"></p>

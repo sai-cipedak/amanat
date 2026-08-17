@@ -604,3 +604,27 @@ footer {
     width: 100%;
   }
 }
+
+
+/* ============================================================
+   Brand refresh hotfix
+   ============================================================ */
+
+/* Header CTA must remain white on Cobalt/Baltic button backgrounds. */
+.head a.header-cta,
+body > header a.header-cta,
+.header-actions a.header-cta {
+  color: #FFFFFF !important;
+}
+
+.head a.header-cta:hover,
+body > header a.header-cta:hover,
+.header-actions a.header-cta:hover {
+  color: #FFFFFF !important;
+}
+
+/* Keep public dashboard filter controls aligned when the
+   Priority and Project Status filters are present. */
+.filters-panel .filter-grid {
+  align-items: end;
+}
