@@ -18,7 +18,8 @@ const state = {
   activeContributorCount: 0,
   selectedOpportunityId: null,
   reviewApplicationId: null,
-  reviewDecision: null
+  reviewDecision: null,
+  ownership: []
 };
 
 const $ = id => document.getElementById(id);
@@ -69,6 +70,20 @@ const els = {
   editorPublicNote: $("editor-public-note"),
   editorOwnerNote: $("editor-owner-note"),
   opportunityMessage: $("opportunity-message"),
+
+  metricOwnerPanel: $("metric-owner-panel"),
+  metricOwnerSummary: $("metric-owner-summary"),
+  manageOwnerButton: $("manage-owner-button"),
+  ownerModal: $("owner-modal"),
+  ownerModalClose: $("owner-modal-close"),
+  ownerModalTitle: $("owner-modal-title"),
+  ownerModalContext: $("owner-modal-context"),
+  ownerCurrentList: $("owner-current-list"),
+  ownerForm: $("owner-form"),
+  ownerRole: $("owner-role"),
+  ownerDisplayName: $("owner-display-name"),
+  ownerEmail: $("owner-email"),
+  ownerMessage: $("owner-message"),
   shareOpportunityButton: $("share-opportunity-button"),
   shareModal: $("share-modal"),
   shareClose: $("share-close"),
@@ -175,6 +190,26 @@ async function loadApplications() {
   state.applications = data || [];
 }
 
+async function loadOwnership() {
+  if (state.profile?.role !== "admin") {
+    state.ownership = [];
+    return;
+  }
+
+  const { data, error } = await volunteerAdminSupabase
+    .rpc("get_admin_metric_ownership");
+
+  if (error) throw error;
+  state.ownership = data || [];
+}
+
+function currentMetricOwnership(metricId) {
+  return state.ownership.filter(row =>
+    row.metric_id === metricId &&
+    ["pending", "active"].includes(row.assignment_status)
+  );
+}
+
 async function loadContributorCount() {
   const { count, error } = await volunteerAdminSupabase
     .from("metric_contributors")
@@ -190,7 +225,8 @@ async function reloadData() {
     loadSkills(),
     loadOpportunities(),
     loadApplications(),
-    loadContributorCount()
+    loadContributorCount(),
+    loadOwnership()
   ]);
 
   populateClusterFilters();
@@ -389,8 +425,176 @@ function renderSkillTree(opportunity) {
     .join("");
 }
 
+
+function ownerRoleLabel(role) {
+  return role === "primary_owner"
+    ? "Primary Owner"
+    : "Supporting Owner";
+}
+
+function renderMetricOwnership(row) {
+  const owners = currentMetricOwnership(row.metric_id);
+
+  els.manageOwnerButton.hidden =
+    state.profile?.role !== "admin";
+
+  if (!owners.length) {
+    els.metricOwnerSummary.innerHTML = `
+      <div class="owner-empty">
+        Belum ada Metric Owner untuk metric ini.
+      </div>
+    `;
+    return;
+  }
+
+  const sorted = [...owners].sort((a,b) => {
+    const ra = a.owner_role === "primary_owner" ? 0 : 1;
+    const rb = b.owner_role === "primary_owner" ? 0 : 1;
+    return ra - rb;
+  });
+
+  els.metricOwnerSummary.innerHTML = sorted.map(owner => `
+    <div class="owner-summary-row">
+      <div class="owner-summary-main">
+        <strong>${esc(owner.display_name || owner.owner_email)}</strong>
+        <span>${esc(owner.owner_email)}</span>
+      </div>
+      <div class="badge-row">
+        <span class="badge ${owner.owner_role === "primary_owner" ? "priority" : ""}">
+          ${esc(ownerRoleLabel(owner.owner_role))}
+        </span>
+        <span class="badge ${owner.assignment_status === "active" ? "active" : "pending"}">
+          ${esc(owner.assignment_status)}
+        </span>
+      </div>
+    </div>
+  `).join("");
+}
+
+function renderOwnerModalCurrent(row) {
+  const owners = currentMetricOwnership(row.metric_id);
+
+  if (!owners.length) {
+    els.ownerCurrentList.innerHTML = `
+      <div class="owner-empty">Belum ada current ownership.</div>
+    `;
+    return;
+  }
+
+  const sorted = [...owners].sort((a,b) => {
+    const ra = a.owner_role === "primary_owner" ? 0 : 1;
+    const rb = b.owner_role === "primary_owner" ? 0 : 1;
+    return ra - rb;
+  });
+
+  els.ownerCurrentList.innerHTML = sorted.map(owner => `
+    <div class="owner-current-row">
+      <div class="owner-summary-main">
+        <strong>${esc(owner.display_name || owner.owner_email)}</strong>
+        <span>
+          ${esc(owner.owner_email)} · ${esc(ownerRoleLabel(owner.owner_role))}
+        </span>
+      </div>
+      <div class="owner-actions">
+        <span class="badge ${owner.assignment_status === "active" ? "active" : "pending"}">
+          ${esc(owner.assignment_status)}
+        </span>
+        <button class="owner-end-button"
+                type="button"
+                data-end-owner="${owner.assignment_id}">
+          End Assignment
+        </button>
+      </div>
+    </div>
+  `).join("");
+
+  els.ownerCurrentList.querySelectorAll("[data-end-owner]").forEach(button => {
+    button.addEventListener("click", async () => {
+      const assignmentId = Number(button.dataset.endOwner);
+      const owner = state.ownership.find(
+        item => Number(item.assignment_id) === assignmentId
+      );
+
+      const confirmed = window.confirm(
+        `End assignment untuk ${owner?.display_name || owner?.owner_email || "owner ini"}?`
+      );
+      if (!confirmed) return;
+
+      try {
+        button.disabled = true;
+        const { error } = await volunteerAdminSupabase.rpc(
+          "end_metric_owner_assignment",
+          { p_assignment_id: assignmentId }
+        );
+        if (error) throw error;
+
+        await reloadData();
+        const current = selectedOpportunity();
+        if (current) renderOwnerModalCurrent(current);
+
+        setMessage(
+          els.ownerMessage,
+          "Assignment berhasil diakhiri.",
+          "success"
+        );
+      } catch (error) {
+        console.error(error);
+        setMessage(els.ownerMessage, error.message, "error");
+      } finally {
+        button.disabled = false;
+      }
+    });
+  });
+}
+
+function openOwnerModal() {
+  const row = selectedOpportunity();
+  if (!row || state.profile?.role !== "admin") return;
+
+  els.ownerModalTitle.textContent = "Manage Metric Owner";
+  els.ownerModalContext.innerHTML = `
+    <strong>${esc(row.kpi_id)} · ${esc(row.kpi_title)}</strong><br>
+    ${esc(row.metric_id)} · ${esc(row.metric_name)}
+  `;
+
+  els.ownerRole.value = "primary_owner";
+  els.ownerDisplayName.value = "";
+  els.ownerEmail.value = "";
+
+  setMessage(els.ownerMessage, "");
+  renderOwnerModalCurrent(row);
+  els.ownerModal.hidden = false;
+}
+
+async function assignOwner() {
+  const row = selectedOpportunity();
+  if (!row) throw new Error("Metric tidak ditemukan.");
+
+  const email = els.ownerEmail.value.trim();
+  const displayName = els.ownerDisplayName.value.trim();
+
+  if (!email) throw new Error("Email owner wajib diisi.");
+
+  const { error } = await volunteerAdminSupabase.rpc(
+    "assign_metric_owner",
+    {
+      p_metric_id: row.metric_id,
+      p_owner_email: email,
+      p_display_name: displayName || null,
+      p_owner_role: els.ownerRole.value
+    }
+  );
+
+  if (error) throw error;
+
+  await reloadData();
+  const current = selectedOpportunity();
+  if (current) renderOwnerModalCurrent(current);
+}
+
 function renderOpportunityEditor(row) {
   els.opportunityEditor.hidden = false;
+  renderMetricOwnership(row);
 
   els.editorKpiId.textContent = `${row.kpi_id} · ${row.metric_id}`;
   els.editorMetricName.textContent = row.metric_name;
@@ -1087,6 +1291,40 @@ els.reviewForm.addEventListener("submit", async event => {
   }
 });
 
+
+
+els.manageOwnerButton.addEventListener("click", openOwnerModal);
+
+els.ownerModalClose.addEventListener("click", () => {
+  els.ownerModal.hidden = true;
+});
+
+els.ownerModal.addEventListener("click", event => {
+  if (event.target === els.ownerModal) {
+    els.ownerModal.hidden = true;
+  }
+});
+
+els.ownerForm.addEventListener("submit", async event => {
+  event.preventDefault();
+
+  try {
+    setMessage(els.ownerMessage, "Assigning…");
+    await assignOwner();
+
+    setMessage(
+      els.ownerMessage,
+      "Metric Owner berhasil diassign.",
+      "success"
+    );
+
+    els.ownerDisplayName.value = "";
+    els.ownerEmail.value = "";
+  } catch (error) {
+    console.error(error);
+    setMessage(els.ownerMessage, error.message, "error");
+  }
+});
 
 els.shareOpportunityButton.addEventListener("click", openShareModal);
 

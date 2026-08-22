@@ -6,20 +6,13 @@
   <meta name="robots" content="noindex,nofollow" />
   <title>Volunteer Admin · SAI Cipedak</title>
   <link rel="stylesheet" href="volunteer-admin.css" />
-  <link rel="stylesheet" href="sai-theme.css" />
 </head>
 <body>
   <header class="topbar">
     <div class="shell topbar-inner">
-      <div class="sai-brand-block">
-        <img src="sai-logo-web.png"
-             alt="Sekolah Alam Indonesia"
-             class="sai-brand-logo">
-        <div class="sai-page-identity">
-          <p class="eyebrow">SAI CIPEDAK · VOLUNTEER</p>
-          <h1>Volunteer Admin</h1>
-          <span class="sai-accent-rule" aria-hidden="true"></span>
-        </div>
+      <div>
+        <p class="eyebrow">SAI CIPEDAK · VOLUNTEER</p>
+        <h1>Volunteer Admin</h1>
       </div>
 
       <div class="topbar-actions">
@@ -146,6 +139,21 @@
               </div>
               <div id="editor-badges" class="badge-row"></div>
             </div>
+
+            <section id="metric-owner-panel" class="metric-owner-panel">
+              <div class="metric-owner-heading">
+                <div>
+                  <p class="eyebrow">ACCOUNTABILITY</p>
+                  <h3>Metric Owner</h3>
+                </div>
+                <button id="manage-owner-button" class="secondary-button" type="button" hidden>
+                  Manage Owner
+                </button>
+              </div>
+              <div id="metric-owner-summary" class="metric-owner-summary">
+                <div class="owner-empty">Belum ada Metric Owner.</div>
+              </div>
+            </section>
 
             <form id="opportunity-form">
               <div class="form-grid">
@@ -292,6 +300,61 @@
     </section>
   </main>
 
+
+  <!-- Metric Owner modal -->
+  <div id="owner-modal" class="modal-backdrop" hidden>
+    <section class="modal-card owner-modal-card">
+      <div class="modal-heading">
+        <div>
+          <p class="eyebrow">METRIC OWNERSHIP</p>
+          <h2 id="owner-modal-title">Manage Metric Owner</h2>
+        </div>
+        <button id="owner-modal-close" class="close-button" type="button">×</button>
+      </div>
+
+      <div id="owner-modal-context" class="review-context"></div>
+
+      <section class="owner-current-section">
+        <h3>Current Ownership</h3>
+        <div id="owner-current-list" class="owner-current-list"></div>
+      </section>
+
+      <section class="owner-assignment-section">
+        <h3>Assign Owner</h3>
+        <form id="owner-form">
+          <div class="form-grid">
+            <label>
+              <span>Owner Role *</span>
+              <select id="owner-role" required>
+                <option value="primary_owner">Primary Owner</option>
+                <option value="supporting_owner">Supporting Owner</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Display Name</span>
+              <input id="owner-display-name" type="text" placeholder="Nama lengkap" />
+            </label>
+
+            <label class="wide">
+              <span>Google / Login Email *</span>
+              <input id="owner-email" type="email" required placeholder="nama@email.com" />
+            </label>
+          </div>
+
+          <div class="owner-guidance">
+            <strong>Primary Owner</strong> adalah accountable owner dan nantinya mempunyai final approval volunteer untuk metric ini.
+            <strong>Supporting Owner</strong> membantu eksekusi tetapi tidak mengambil final approval.
+          </div>
+
+          <div class="form-actions">
+            <span id="owner-message" class="form-message"></span>
+            <button class="primary-button" type="submit">Assign Owner</button>
+          </div>
+        </form>
+      </section>
+    </section>
+  </div>
 
   <div id="share-modal" class="modal-backdrop" hidden>
     <section class="modal-card">
