@@ -161,6 +161,99 @@
 
   </main>
 
+
+  <div id="progress-modal" class="modal-backdrop" hidden>
+    <section class="modal-card progress-modal-card">
+      <div class="modal-heading">
+        <div>
+          <p class="eyebrow">METRIC UPDATE</p>
+          <h2 id="progress-modal-title">Update Progress</h2>
+        </div>
+        <button id="progress-modal-close"
+                class="close-button"
+                type="button">×</button>
+      </div>
+
+      <div id="progress-modal-context"
+           class="review-context"></div>
+
+      <div class="progress-workspace-grid">
+        <form id="progress-form" class="progress-form">
+          <div class="form-grid">
+            <label>
+              <span>As-of Date *</span>
+              <input id="progress-date"
+                     type="date"
+                     required />
+            </label>
+
+            <label>
+              <span>Actual</span>
+              <input id="progress-actual"
+                     type="number"
+                     step="any"
+                     placeholder="Nilai aktual" />
+            </label>
+
+            <label>
+              <span>Progress Override %</span>
+              <input id="progress-override"
+                     type="number"
+                     min="0"
+                     max="100"
+                     step="0.1"
+                     placeholder="0–100" />
+            </label>
+
+            <label class="wide">
+              <span>Public Evidence URL</span>
+              <input id="progress-evidence"
+                     type="url"
+                     placeholder="https://..." />
+            </label>
+
+            <label class="wide">
+              <span>Update Note</span>
+              <textarea id="progress-note"
+                        rows="4"
+                        placeholder="Jelaskan perkembangan, kendala, atau konteks data."></textarea>
+            </label>
+          </div>
+
+          <div class="owner-update-guidance">
+            Update ini akan disimpan sebagai <strong>Draft</strong>.
+            Angka pada Public Dashboard baru berubah setelah update
+            diverifikasi melalui workflow review yang berlaku.
+          </div>
+
+          <div class="form-actions">
+            <span id="progress-message"
+                  class="form-message"></span>
+
+            <button class="primary-button"
+                    type="submit">
+              Submit Update
+            </button>
+          </div>
+        </form>
+
+        <aside class="history-panel">
+          <div class="history-heading">
+            <div>
+              <p class="eyebrow">HISTORY</p>
+              <h3>Metric Updates</h3>
+            </div>
+            <span id="history-count"
+                  class="badge">0</span>
+          </div>
+
+          <div id="history-list"
+               class="history-list"></div>
+        </aside>
+      </div>
+    </section>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
   <script src="my-metrics.js"></script>

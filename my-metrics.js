@@ -11,7 +11,9 @@ const MODE_LABELS = {
 
 const state = {
   session: null,
-  rows: []
+  rows: [],
+  selectedMetricId: null,
+  updateHistory: []
 };
 
 const $ = id => document.getElementById(id);
@@ -37,7 +39,21 @@ const els = {
 
   emptyOwnerState: $("empty-owner-state"),
   resultCount: $("result-count"),
-  metricList: $("metric-list")
+  metricList: $("metric-list"),
+
+  progressModal: $("progress-modal"),
+  progressModalClose: $("progress-modal-close"),
+  progressModalTitle: $("progress-modal-title"),
+  progressModalContext: $("progress-modal-context"),
+  progressForm: $("progress-form"),
+  progressDate: $("progress-date"),
+  progressActual: $("progress-actual"),
+  progressOverride: $("progress-override"),
+  progressEvidence: $("progress-evidence"),
+  progressNote: $("progress-note"),
+  progressMessage: $("progress-message"),
+  historyCount: $("history-count"),
+  historyList: $("history-list")
 };
 
 function esc(value) {
@@ -242,6 +258,187 @@ function renderOpportunity(row) {
   `;
 }
 
+
+function localDateISO() {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function selectedMetricRow() {
+  return state.rows.find(
+    row => row.metric_id === state.selectedMetricId
+  ) || null;
+}
+
+function setProgressMessage(text, type = "") {
+  els.progressMessage.textContent = text || "";
+  els.progressMessage.className =
+    `form-message ${type}`.trim();
+}
+
+function formatHistoryValue(value, fallback = "—") {
+  return value === null || value === undefined || value === ""
+    ? fallback
+    : String(value);
+}
+
+async function loadMetricHistory(metricId) {
+  const { data, error } = await myMetricsSupabase.rpc(
+    "get_my_metric_update_history",
+    { p_metric_id: metricId }
+  );
+
+  if (error) throw error;
+
+  state.updateHistory = data || [];
+  renderMetricHistory();
+}
+
+function renderMetricHistory() {
+  els.historyCount.textContent = state.updateHistory.length;
+
+  if (!state.updateHistory.length) {
+    els.historyList.innerHTML = `
+      <div class="empty-owner-state">
+        Belum ada update history.
+      </div>
+    `;
+    return;
+  }
+
+  els.historyList.innerHTML = state.updateHistory.map(update => `
+    <article class="history-row">
+      <div class="history-row-top">
+        <div>
+          <strong>${esc(update.as_of_date || "—")}</strong>
+          <span class="history-meta">
+            Actual: ${esc(formatHistoryValue(update.actual))}
+            · Progress: ${
+              update.progress_pct === null ||
+              update.progress_pct === undefined
+                ? "—"
+                : `${esc(update.progress_pct)}%`
+            }
+          </span>
+        </div>
+
+        <span class="badge ${esc(update.verification_status)}">
+          ${esc(update.verification_status)}
+        </span>
+      </div>
+
+      ${
+        update.update_note
+          ? `<div class="history-note">
+               ${esc(update.update_note)}
+             </div>`
+          : ""
+      }
+
+      ${
+        update.review_note
+          ? `<div class="history-note">
+               <strong>Review:</strong>
+               ${esc(update.review_note)}
+             </div>`
+          : ""
+      }
+    </article>
+  `).join("");
+}
+
+async function openProgressModal(metricId) {
+  const row = state.rows.find(
+    item => item.metric_id === metricId
+  );
+
+  if (!row) return;
+
+  state.selectedMetricId = metricId;
+
+  els.progressModalTitle.textContent = "Update Progress";
+  els.progressModalContext.innerHTML = `
+    <strong>${esc(row.kpi_id)} · ${esc(row.kpi_title)}</strong><br>
+    ${esc(row.metric_id)} · ${esc(row.metric_name)}<br>
+    Ownership: <strong>${esc(ownerRoleLabel(row.owner_role))}</strong>
+  `;
+
+  els.progressDate.value = localDateISO();
+  els.progressActual.value = "";
+  els.progressOverride.value = "";
+  els.progressEvidence.value = "";
+  els.progressNote.value = "";
+
+  setProgressMessage("");
+  els.historyList.innerHTML = `
+    <div class="empty-owner-state">Memuat history…</div>
+  `;
+  els.progressModal.hidden = false;
+
+  try {
+    await loadMetricHistory(metricId);
+  } catch (error) {
+    console.error(error);
+    els.historyList.innerHTML = `
+      <div class="empty-owner-state">
+        Gagal memuat history: ${esc(error.message)}
+      </div>
+    `;
+  }
+}
+
+async function submitProgressUpdate() {
+  const row = selectedMetricRow();
+
+  if (!row) {
+    throw new Error("Metric tidak ditemukan.");
+  }
+
+  const actualRaw = els.progressActual.value.trim();
+  const overrideRaw = els.progressOverride.value.trim();
+
+  if (!actualRaw && !overrideRaw) {
+    throw new Error("Isi Actual atau Progress Override.");
+  }
+
+  const progressValue =
+    overrideRaw === "" ? null : Number(overrideRaw);
+
+  if (
+    progressValue !== null &&
+    (progressValue < 0 || progressValue > 100)
+  ) {
+    throw new Error("Progress Override harus 0–100.");
+  }
+
+  const { error } = await myMetricsSupabase.rpc(
+    "submit_owner_metric_update",
+    {
+      p_metric_id: row.metric_id,
+      p_as_of_date: els.progressDate.value,
+      p_actual:
+        actualRaw === "" ? null : Number(actualRaw),
+      p_progress_pct: progressValue,
+      p_public_evidence_url:
+        els.progressEvidence.value.trim() || null,
+      p_update_note:
+        els.progressNote.value.trim() || null
+    }
+  );
+
+  if (error) throw error;
+
+  els.progressActual.value = "";
+  els.progressOverride.value = "";
+  els.progressEvidence.value = "";
+  els.progressNote.value = "";
+
+  await loadMetricHistory(row.metric_id);
+}
+
 function renderRows() {
   const rows = filteredRows();
 
@@ -396,7 +593,7 @@ function renderRows() {
 
         <div class="metric-actions">
           <span class="readonly-note">
-            Read-only pada Phase 5C.4C
+            Progress update masuk sebagai Draft untuk verification.
           </span>
 
           ${
@@ -408,10 +605,24 @@ function renderRows() {
                  </a>`
               : ""
           }
+
+          <button class="primary-button"
+                  type="button"
+                  data-update-progress="${esc(row.metric_id)}">
+            Update Progress
+          </button>
         </div>
       </article>
     `;
   }).join("");
+
+  els.metricList
+    .querySelectorAll("[data-update-progress]")
+    .forEach(button => {
+      button.addEventListener("click", () => {
+        openProgressModal(button.dataset.updateProgress);
+      });
+    });
 }
 
 function renderAll() {
@@ -484,6 +695,34 @@ els.logout.addEventListener("click", async () => {
     input.tagName === "INPUT" ? "input" : "change",
     renderRows
   );
+});
+
+
+els.progressModalClose.addEventListener("click", () => {
+  els.progressModal.hidden = true;
+});
+
+els.progressModal.addEventListener("click", event => {
+  if (event.target === els.progressModal) {
+    els.progressModal.hidden = true;
+  }
+});
+
+els.progressForm.addEventListener("submit", async event => {
+  event.preventDefault();
+
+  try {
+    setProgressMessage("Submitting…");
+    await submitProgressUpdate();
+
+    setProgressMessage(
+      "Draft tersimpan. Menunggu verification.",
+      "success"
+    );
+  } catch (error) {
+    console.error(error);
+    setProgressMessage(error.message, "error");
+  }
 });
 
 myMetricsSupabase.auth.onAuthStateChange(

@@ -448,3 +448,230 @@ input:focus,select:focus{
   }
   .readonly-note{margin-right:0}
 }
+
+
+/* ============================================================
+   Phase 5C.4D.1 — Owner Progress Update
+   ============================================================ */
+
+.metric-actions .primary-button{
+  min-height:34px;
+  padding:0 11px;
+  font-size:10px
+}
+
+.modal-backdrop{
+  position:fixed;
+  inset:0;
+  z-index:300;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+  background:rgba(0,0,0,.44);
+  backdrop-filter:blur(2px)
+}
+
+.modal-card{
+  width:min(900px,100%);
+  max-height:calc(100vh - 36px);
+  overflow:auto;
+  padding:20px;
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:#fff;
+  box-shadow:0 24px 70px rgba(0,0,0,.22)
+}
+
+.modal-heading{
+  display:flex;
+  justify-content:space-between;
+  gap:14px
+}
+
+.close-button{
+  border:0;
+  background:transparent;
+  color:var(--muted);
+  font-size:28px;
+  line-height:1
+}
+
+.review-context{
+  margin:10px 0 14px;
+  padding:10px;
+  border-radius:9px;
+  background:var(--soft);
+  color:var(--muted);
+  font-size:11px
+}
+
+.progress-workspace-grid{
+  display:grid;
+  grid-template-columns:minmax(0,1.15fr) minmax(300px,.85fr);
+  gap:14px
+}
+
+.form-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px
+}
+
+.form-grid .wide{
+  grid-column:1/-1
+}
+
+textarea{
+  width:100%;
+  padding:9px 10px;
+  border:1px solid #D4DCE5;
+  border-radius:8px;
+  resize:vertical;
+  font:inherit;
+  color:var(--text)
+}
+
+textarea:focus{
+  outline:none;
+  border-color:var(--accent);
+  box-shadow:0 0 0 3px rgba(21,88,154,.11)
+}
+
+.form-actions{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-top:14px;
+  padding-top:12px;
+  border-top:1px solid var(--line)
+}
+
+.owner-update-guidance{
+  margin-top:10px;
+  padding:10px;
+  border:1px solid #DCE3EA;
+  border-radius:9px;
+  background:#F7F9FC;
+  color:var(--muted);
+  font-size:10px
+}
+
+.owner-update-guidance strong{
+  color:var(--accent)
+}
+
+.history-panel{
+  min-width:0;
+  padding:12px;
+  border:1px solid var(--line);
+  border-radius:11px;
+  background:#FBFCFD
+}
+
+.history-heading{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:9px
+}
+
+.history-heading h3{
+  margin:0;
+  font-size:14px
+}
+
+.history-list{
+  display:grid;
+  gap:7px;
+  max-height:470px;
+  overflow:auto
+}
+
+.history-row{
+  padding:10px;
+  border:1px solid var(--line);
+  border-radius:9px;
+  background:#fff
+}
+
+.history-row-top{
+  display:flex;
+  justify-content:space-between;
+  gap:8px
+}
+
+.history-row strong,
+.history-row span{
+  display:block
+}
+
+.history-row strong{
+  font-size:10px
+}
+
+.history-row .history-meta{
+  margin-top:4px;
+  color:var(--muted);
+  font-size:9px
+}
+
+.history-note{
+  margin-top:7px;
+  color:#46515B;
+  font-size:10px
+}
+
+.badge.draft{
+  background:#EEF2F5;
+  color:#59636D
+}
+
+.badge.verified{
+  background:rgba(122,153,6,.12);
+  color:#5D7305
+}
+
+.badge.rejected{
+  background:rgba(255,0,0,.07);
+  color:#B00000
+}
+
+.form-message.success{
+  color:#5D7305
+}
+
+.form-message.error{
+  color:#B00000
+}
+
+@media(max-width:800px){
+  .progress-workspace-grid{
+    grid-template-columns:1fr
+  }
+
+  .history-list{
+    max-height:320px
+  }
+}
+
+@media(max-width:580px){
+  .form-grid{
+    grid-template-columns:1fr
+  }
+
+  .form-grid .wide{
+    grid-column:auto
+  }
+
+  .form-actions{
+    align-items:stretch;
+    flex-direction:column
+  }
+
+  .form-actions button{
+    width:100%
+  }
+}
