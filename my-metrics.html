@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>My Metrics · SAI Cipedak</title>
+  <link rel="stylesheet" href="my-metrics.css" />
+  <link rel="stylesheet" href="sai-theme.css" />
+</head>
+
+<body>
+  <header class="page-header">
+    <div class="shell header-inner">
+      <div class="sai-brand-block">
+        <img src="sai-logo-web.png"
+             alt="Sekolah Alam Indonesia"
+             class="sai-brand-logo" />
+        <div class="sai-page-identity">
+          <p class="eyebrow">SAI CIPEDAK · METRIC OWNER</p>
+          <h1>My Metrics</h1>
+          <p class="header-copy">
+            Workspace untuk metric yang menjadi tanggung jawab Anda.
+          </p>
+          <span class="sai-accent-rule" aria-hidden="true"></span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <a href="volunteer.html" class="header-link">Volunteer Home</a>
+        <a href="index.html" class="header-link">Public Dashboard ↗</a>
+
+        <div id="session-controls" class="session-controls" hidden>
+          <div class="session-user">
+            <strong id="user-name"></strong>
+            <span id="user-email"></span>
+          </div>
+          <button id="logout-button"
+                  class="secondary-button"
+                  type="button">
+            Sign out
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="shell main-shell">
+
+    <section id="login-panel" class="auth-card">
+      <p class="eyebrow">METRIC OWNER ACCESS</p>
+      <h2>Sign in with Google</h2>
+      <p class="muted">
+        Gunakan akun Google yang telah diassign sebagai Primary atau
+        Supporting Metric Owner.
+      </p>
+
+      <button id="google-login-button"
+              class="google-button"
+              type="button">
+        Continue with Google
+      </button>
+
+      <p id="login-message" class="form-message"></p>
+    </section>
+
+    <section id="workspace" hidden>
+
+      <section class="summary-grid">
+        <article class="summary-card">
+          <span>My Metrics</span>
+          <strong id="metric-count">0</strong>
+          <small>assigned metrics</small>
+        </article>
+
+        <article class="summary-card">
+          <span>Primary Owner</span>
+          <strong id="primary-count">0</strong>
+          <small>accountable metrics</small>
+        </article>
+
+        <article class="summary-card">
+          <span>Open Opportunities</span>
+          <strong id="open-count">0</strong>
+          <small>actively recruiting</small>
+        </article>
+
+        <article class="summary-card">
+          <span>Pending Applicants</span>
+          <strong id="pending-count">0</strong>
+          <small>awaiting owner review</small>
+        </article>
+      </section>
+
+      <section class="panel">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">OWNER WORKSPACE</p>
+            <h2>Metric yang Anda pegang</h2>
+          </div>
+
+          <p class="muted">
+            Phase ini masih read-only. Update progress, skill,
+            opportunity, dan approval applicant akan diaktifkan
+            pada tahap berikutnya.
+          </p>
+        </div>
+
+        <div class="workspace-filter">
+          <label>
+            <span>Cari metric</span>
+            <input id="metric-search"
+                   type="search"
+                   placeholder="KPI, metric, cluster..." />
+          </label>
+
+          <label>
+            <span>Ownership</span>
+            <select id="owner-role-filter">
+              <option value="">Semua ownership</option>
+              <option value="primary_owner">Primary Owner</option>
+              <option value="supporting_owner">Supporting Owner</option>
+            </select>
+          </label>
+
+          <label>
+            <span>Opportunity</span>
+            <select id="opportunity-filter">
+              <option value="">Semua status</option>
+              <option value="open">Open</option>
+              <option value="draft">Draft</option>
+              <option value="paused">Paused</option>
+              <option value="filled">Filled</option>
+              <option value="closed">Closed</option>
+              <option value="none">Belum ada opportunity</option>
+            </select>
+          </label>
+        </div>
+      </section>
+
+      <section id="empty-owner-state"
+               class="panel empty-owner-state"
+               hidden>
+        <p class="eyebrow">NO ASSIGNMENT</p>
+        <h2>Belum ada metric yang terhubung ke akun ini</h2>
+        <p class="muted">
+          Jika Anda sudah ditunjuk sebagai Metric Owner, pastikan
+          login menggunakan alamat Google yang sama dengan email
+          assignment.
+        </p>
+      </section>
+
+      <section>
+        <div class="result-heading">
+          <strong id="result-count">0 metrics</strong>
+        </div>
+
+        <div id="metric-list" class="metric-list"></div>
+      </section>
+    </section>
+
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="my-metrics.js"></script>
+</body>
+</html>
