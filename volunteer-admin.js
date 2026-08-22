@@ -191,16 +191,49 @@ async function loadApplications() {
 }
 
 async function loadOwnership() {
-  if (state.profile?.role !== "admin") {
+  if (!["editor", "admin"].includes(state.profile?.role)) {
     state.ownership = [];
     return;
   }
 
+  // Use the metric_owners table directly.
+  // RLS from Phase 5C.4A already allows Editor/Admin to read
+  // ownership records, while ownership writes remain Admin-only RPCs.
   const { data, error } = await volunteerAdminSupabase
-    .rpc("get_admin_metric_ownership");
+    .from("metric_owners")
+    .select(`
+      id,
+      metric_id,
+      owner_email,
+      display_name,
+      owner_role,
+      assignment_status,
+      user_id,
+      assigned_by_email,
+      assigned_at,
+      activated_at,
+      ended_at
+    `)
+    .in("assignment_status", ["pending", "active"])
+    .order("metric_id", { ascending: true })
+    .order("owner_role", { ascending: true })
+    .order("assigned_at", { ascending: true });
 
   if (error) throw error;
-  state.ownership = data || [];
+
+  state.ownership = (data || []).map(row => ({
+    assignment_id: row.id,
+    metric_id: row.metric_id,
+    owner_email: row.owner_email,
+    display_name: row.display_name,
+    owner_role: row.owner_role,
+    assignment_status: row.assignment_status,
+    owner_user_id: row.user_id,
+    assigned_by_email: row.assigned_by_email,
+    assigned_at: row.assigned_at,
+    activated_at: row.activated_at,
+    ended_at: row.ended_at
+  }));
 }
 
 function currentMetricOwnership(metricId) {

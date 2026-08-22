@@ -558,3 +558,81 @@ fieldset{
 .owner-guidance{margin-top:10px;padding:10px;border:1px solid #d7e2d9;border-radius:9px;background:#f8faf8;color:var(--muted);font-size:10px}
 .owner-guidance strong{color:var(--text)}
 @media(max-width:680px){.metric-owner-heading,.owner-summary-row,.owner-current-row{align-items:stretch;flex-direction:column}.owner-current-row .owner-actions{justify-content:flex-start}}
+
+
+/* ============================================================
+   Phase 5C.4B Hotfix — SAI palette fallback
+   Shared sai-theme.css remains the canonical brand layer.
+   ============================================================ */
+
+:root{
+  --sai-baltic:#15589A;
+  --sai-black:#000000;
+  --sai-red:#FF0000;
+  --sai-lime:#7A9906;
+  --sai-cobalt:#0D45B4
+}
+
+.topbar{
+  background:#FFFFFF;
+  color:#111820;
+  border-bottom:4px solid var(--sai-baltic)
+}
+
+.top-link{
+  color:var(--sai-baltic)
+}
+
+.primary-button,
+.google-button,
+.tab-button.active{
+  border-color:var(--sai-cobalt);
+  background:var(--sai-cobalt);
+  color:#FFFFFF
+}
+
+.primary-button:hover,
+.google-button:hover{
+  border-color:var(--sai-baltic);
+  background:var(--sai-baltic)
+}
+
+.secondary-button{
+  border-color:#C9D4DE;
+  background:#FFFFFF;
+  color:var(--sai-baltic)
+}
+
+.summary-card::before{
+  background:var(--sai-baltic)
+}
+
+.summary-card:nth-child(2)::before{
+  background:var(--sai-lime)
+}
+
+.summary-card:nth-child(3)::before{
+  background:var(--sai-cobalt)
+}
+
+.badge.active,
+.badge.open,
+.badge.approved{
+  background:rgba(122,153,6,.12);
+  color:#5D7305
+}
+
+.badge.priority{
+  background:rgba(21,88,154,.10);
+  color:var(--sai-baltic)
+}
+
+.metric-owner-panel{
+  border-color:#DCE3EA;
+  background:#F7F9FC
+}
+
+.owner-guidance{
+  border-color:#DCE3EA;
+  background:#F7F9FC
+}
