@@ -710,3 +710,52 @@ textarea:focus{
   align-items:center;
   justify-content:center
 }
+
+
+/* ============================================================
+   Phase 5C.4D.3 — Owner Manage Opportunity
+   ============================================================ */
+
+.opportunity-modal-card{
+  width:min(820px,100%)
+}
+
+.opportunity-modes{
+  margin:0;
+  padding:11px 12px;
+  border:1px solid #D4DCE5;
+  border-radius:9px
+}
+
+.opportunity-modes legend{
+  padding:0 4px;
+  color:#526170;
+  font-size:10px;
+  font-weight:850
+}
+
+.mode-check{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin:7px 0
+}
+
+.mode-check input{
+  width:16px;
+  min-height:16px;
+  margin:0
+}
+
+.mode-check span{
+  margin:0;
+  color:var(--text);
+  font-size:11px
+}
+
+.metric-actions [data-manage-opportunity]{
+  display:inline-flex !important;
+  align-items:center;
+  justify-content:center;
+  min-width:132px
+}

@@ -14,7 +14,8 @@ const state = {
   rows: [],
   selectedMetricId: null,
   updateHistory: [],
-  skillCatalog: []
+  skillCatalog: [],
+  opportunityDetail: null
 };
 
 const $ = id => document.getElementById(id);
@@ -64,7 +65,26 @@ const els = {
   requiredSkillCount: $("required-skill-count"),
   preferredSkillCount: $("preferred-skill-count"),
   saveSkillsButton: $("save-skills-button"),
-  skillsMessage: $("skills-message")
+  skillsMessage: $("skills-message"),
+
+  opportunityModal: $("opportunity-modal"),
+  opportunityModalClose: $("opportunity-modal-close"),
+  opportunityModalTitle: $("opportunity-modal-title"),
+  opportunityModalContext: $("opportunity-modal-context"),
+  opportunityForm: $("opportunity-form"),
+  opportunityStatus: $("opportunity-status"),
+  opportunitySlots: $("opportunity-slots"),
+  opportunityTitle: $("opportunity-title"),
+  opportunityDescription: $("opportunity-description"),
+  opportunityMinHours: $("opportunity-min-hours"),
+  opportunityMaxHours: $("opportunity-max-hours"),
+  opportunityModeAdvisor: $("opportunity-mode-advisor"),
+  opportunityModeOperational: $("opportunity-mode-operational"),
+  opportunityModeLead: $("opportunity-mode-lead"),
+  opportunityPublicNote: $("opportunity-public-note"),
+  opportunityOwnerNote: $("opportunity-owner-note"),
+  opportunityStatusGuidance: $("opportunity-status-guidance"),
+  opportunityMessage: $("opportunity-message")
 };
 
 function esc(value) {
@@ -568,6 +588,141 @@ async function saveMetricSkills(){
   renderRows();
 }
 
+
+function setOpportunityMessage(text,type=""){
+  els.opportunityMessage.textContent=text||"";
+  els.opportunityMessage.className=`form-message ${type}`.trim();
+}
+
+function collectOpportunityModes(){
+  const modes=[];
+  if(els.opportunityModeAdvisor.checked)modes.push("advisor_sme");
+  if(els.opportunityModeOperational.checked)modes.push("operational_execution");
+  if(els.opportunityModeLead.checked)modes.push("project_lead");
+  return modes;
+}
+
+function setOpportunityModes(modes){
+  const selected=Array.isArray(modes)?modes:[];
+  els.opportunityModeAdvisor.checked=selected.includes("advisor_sme");
+  els.opportunityModeOperational.checked=selected.includes("operational_execution");
+  els.opportunityModeLead.checked=selected.includes("project_lead");
+}
+
+function updateOpportunityStatusGuidance(){
+  const status=els.opportunityStatus.value;
+  const detail=state.opportunityDetail;
+
+  if(status==="open"){
+    els.opportunityStatusGuidance.innerHTML=`
+      Opportunity ini sedang <strong>Open</strong>.
+      Save akan mempertahankan status live. Untuk opportunity yang
+      belum Open, publishing tetap dilakukan melalui Publish & Share.
+    `;
+    return;
+  }
+
+  if(detail?.opportunity_status==="open" && status!=="open"){
+    els.opportunityStatusGuidance.innerHTML=`
+      Mengubah status dari <strong>Open</strong> menjadi
+      <strong>${esc(status)}</strong> akan menghentikan penerimaan
+      applicant publik sesuai status baru.
+    `;
+    return;
+  }
+
+  els.opportunityStatusGuidance.innerHTML=`
+    Simpan detail sebagai <strong>${esc(status)}</strong>.
+    Membuka lowongan baru ke publik dilakukan melalui
+    <strong>Publish & Share</strong> pada tahap berikutnya.
+  `;
+}
+
+async function loadOpportunityDetail(metricId){
+  const {data,error}=await myMetricsSupabase.rpc(
+    "get_owner_metric_opportunity",
+    {p_metric_id:metricId}
+  );
+  if(error)throw error;
+  return Array.isArray(data)&&data.length?data[0]:null;
+}
+
+async function openOpportunityModal(metricId){
+  const row=state.rows.find(item=>item.metric_id===metricId);
+  if(!row)return;
+
+  state.selectedMetricId=metricId;
+  setOpportunityMessage("");
+
+  els.opportunityModalTitle.textContent="Manage Opportunity";
+  els.opportunityModalContext.innerHTML=`
+    <strong>${esc(row.kpi_id)} · ${esc(row.kpi_title)}</strong><br>
+    ${esc(row.metric_id)} · ${esc(row.metric_name)}<br>
+    Ownership: <strong>${esc(ownerRoleLabel(row.owner_role))}</strong>
+  `;
+
+  state.opportunityDetail=await loadOpportunityDetail(metricId);
+  const detail=state.opportunityDetail;
+
+  els.opportunityStatus.value=detail?.opportunity_status||"draft";
+  els.opportunitySlots.value=detail?.volunteer_slots??"";
+  els.opportunityTitle.value=
+    detail?.opportunity_title||row.metric_name||"";
+  els.opportunityDescription.value=
+    detail?.short_description||row.metric_description||"";
+  els.opportunityMinHours.value=detail?.min_hours_month??"";
+  els.opportunityMaxHours.value=detail?.max_hours_month??"";
+  els.opportunityPublicNote.value=detail?.public_note||"";
+  els.opportunityOwnerNote.value=detail?.owner_note||"";
+  setOpportunityModes(
+    detail?.contribution_modes || row.contribution_modes || []
+  );
+
+  // A non-open opportunity cannot be changed to Open in 5C.4D.3.
+  const openOption=els.opportunityStatus.querySelector('option[value="open"]');
+  if(openOption){
+    openOption.disabled=detail?.opportunity_status!=="open";
+  }
+
+  updateOpportunityStatusGuidance();
+  els.opportunityModal.hidden=false;
+}
+
+async function saveMetricOpportunity(){
+  const row=selectedMetricRow();
+  if(!row)throw new Error("Metric tidak ditemukan.");
+
+  const minRaw=els.opportunityMinHours.value.trim();
+  const maxRaw=els.opportunityMaxHours.value.trim();
+  const slotsRaw=els.opportunitySlots.value.trim();
+
+  const {data,error}=await myMetricsSupabase.rpc(
+    "save_owner_metric_opportunity",
+    {
+      p_metric_id:row.metric_id,
+      p_status:els.opportunityStatus.value,
+      p_opportunity_title:els.opportunityTitle.value.trim(),
+      p_short_description:
+        els.opportunityDescription.value.trim()||null,
+      p_min_hours_month:minRaw===""?null:Number(minRaw),
+      p_max_hours_month:maxRaw===""?null:Number(maxRaw),
+      p_volunteer_slots:slotsRaw===""?null:Number(slotsRaw),
+      p_public_note:els.opportunityPublicNote.value.trim()||null,
+      p_owner_note:els.opportunityOwnerNote.value.trim()||null,
+      p_contribution_modes:collectOpportunityModes()
+    }
+  );
+
+  if(error)throw error;
+
+  await loadWorkspace();
+  state.opportunityDetail=await loadOpportunityDetail(row.metric_id);
+  renderSummary();
+  renderRows();
+
+  return data;
+}
+
 function renderRows() {
   const rows = filteredRows();
 
@@ -737,6 +892,12 @@ function renderRows() {
 
           <button class="secondary-button"
                   type="button"
+                  data-manage-opportunity="${esc(row.metric_id)}">
+            Manage Opportunity
+          </button>
+
+          <button class="secondary-button"
+                  type="button"
                   data-manage-skills="${esc(row.metric_id)}">
             Manage Skills
           </button>
@@ -764,6 +925,21 @@ function renderRows() {
     .forEach(button => {
       button.addEventListener("click", () => {
         openSkillsModal(button.dataset.manageSkills);
+      });
+    });
+
+  els.metricList
+    .querySelectorAll("[data-manage-opportunity]")
+    .forEach(button => {
+      button.addEventListener("click", async () => {
+        try{
+          await openOpportunityModal(
+            button.dataset.manageOpportunity
+          );
+        }catch(error){
+          console.error(error);
+          window.alert(error.message);
+        }
       });
     });
 }
@@ -879,6 +1055,38 @@ els.saveSkillsButton.addEventListener("click",async()=>{
   }catch(error){
     console.error(error);
     setSkillsMessage(error.message,"error");
+  }
+});
+
+
+els.opportunityModalClose.addEventListener("click",()=>{
+  els.opportunityModal.hidden=true;
+});
+
+els.opportunityModal.addEventListener("click",event=>{
+  if(event.target===els.opportunityModal){
+    els.opportunityModal.hidden=true;
+  }
+});
+
+els.opportunityStatus.addEventListener(
+  "change",
+  updateOpportunityStatusGuidance
+);
+
+els.opportunityForm.addEventListener("submit",async event=>{
+  event.preventDefault();
+
+  try{
+    setOpportunityMessage("Saving…");
+    await saveMetricOpportunity();
+    setOpportunityMessage(
+      "Opportunity berhasil disimpan.",
+      "success"
+    );
+  }catch(error){
+    console.error(error);
+    setOpportunityMessage(error.message,"error");
   }
 });
 

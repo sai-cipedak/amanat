@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="robots" content="noindex,nofollow" />
   <title>My Metrics · SAI Cipedak</title>
-  <link rel="stylesheet" href="my-metrics.css?v=5c4d2-2" />
-  <link rel="stylesheet" href="sai-theme.css?v=5c4d2-2" />
+  <link rel="stylesheet" href="my-metrics.css?v=5c4d3-1" />
+  <link rel="stylesheet" href="sai-theme.css?v=5c4d3-1" />
 </head>
 
 <body>
@@ -45,7 +45,7 @@
     </div>
   </header>
 
-  <main class="shell main-shell" data-build="5C.4D.2-hotfix-2">
+  <main class="shell main-shell" data-build="5C.4D.3-1">
 
     <section id="login-panel" class="auth-card">
       <p class="eyebrow">METRIC OWNER ACCESS</p>
@@ -293,8 +293,133 @@
     </section>
   </div>
 
+
+  <div id="opportunity-modal" class="modal-backdrop" hidden>
+    <section class="modal-card opportunity-modal-card">
+      <div class="modal-heading">
+        <div>
+          <p class="eyebrow">VOLUNTEER OPPORTUNITY</p>
+          <h2 id="opportunity-modal-title">Manage Opportunity</h2>
+        </div>
+        <button id="opportunity-modal-close"
+                class="close-button"
+                type="button">×</button>
+      </div>
+
+      <div id="opportunity-modal-context"
+           class="review-context"></div>
+
+      <form id="opportunity-form">
+        <div class="form-grid">
+          <label>
+            <span>Status</span>
+            <select id="opportunity-status">
+              <option value="draft">Draft</option>
+              <option value="open">Open — currently live</option>
+              <option value="paused">Paused</option>
+              <option value="closed">Closed</option>
+              <option value="filled">Filled</option>
+            </select>
+          </label>
+
+          <label>
+            <span>Volunteer Slots</span>
+            <input id="opportunity-slots"
+                   type="number"
+                   min="1"
+                   step="1"
+                   placeholder="Contoh: 2" />
+          </label>
+
+          <label class="wide">
+            <span>Opportunity Title *</span>
+            <input id="opportunity-title"
+                   type="text"
+                   required />
+          </label>
+
+          <label class="wide">
+            <span>Short Description</span>
+            <textarea id="opportunity-description"
+                      rows="3"
+                      placeholder="Jelaskan kontribusi yang dibutuhkan."></textarea>
+          </label>
+
+          <label>
+            <span>Min Hours / Month</span>
+            <input id="opportunity-min-hours"
+                   type="number"
+                   min="0"
+                   step="0.5" />
+          </label>
+
+          <label>
+            <span>Max Hours / Month</span>
+            <input id="opportunity-max-hours"
+                   type="number"
+                   min="0"
+                   step="0.5" />
+          </label>
+
+          <fieldset class="wide opportunity-modes">
+            <legend>Contribution Modes</legend>
+
+            <label class="mode-check">
+              <input id="opportunity-mode-advisor"
+                     type="checkbox" />
+              <span>Advisor / SME</span>
+            </label>
+
+            <label class="mode-check">
+              <input id="opportunity-mode-operational"
+                     type="checkbox" />
+              <span>Operational / Execution</span>
+            </label>
+
+            <label class="mode-check">
+              <input id="opportunity-mode-lead"
+                     type="checkbox" />
+              <span>Project Lead</span>
+            </label>
+          </fieldset>
+
+          <label class="wide">
+            <span>Public Note</span>
+            <textarea id="opportunity-public-note"
+                      rows="3"
+                      placeholder="Informasi tambahan yang aman tampil ke calon volunteer."></textarea>
+          </label>
+
+          <label class="wide">
+            <span>Internal / Owner Note</span>
+            <textarea id="opportunity-owner-note"
+                      rows="3"
+                      placeholder="Catatan internal untuk owner/team."></textarea>
+          </label>
+        </div>
+
+        <div id="opportunity-status-guidance"
+             class="owner-update-guidance">
+          Draft dapat diedit dan disiapkan di sini.
+          Membuka lowongan baru ke publik dilakukan melalui
+          <strong>Publish & Share</strong> pada tahap berikutnya.
+        </div>
+
+        <div class="form-actions">
+          <span id="opportunity-message"
+                class="form-message"></span>
+
+          <button class="primary-button"
+                  type="submit">
+            Save Opportunity
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
-  <script src="my-metrics.js?v=5c4d2-2"></script>
+  <script src="my-metrics.js?v=5c4d3-1"></script>
 </body>
 </html>
