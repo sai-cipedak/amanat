@@ -13,7 +13,8 @@ const state = {
   session: null,
   rows: [],
   selectedMetricId: null,
-  updateHistory: []
+  updateHistory: [],
+  skillCatalog: []
 };
 
 const $ = id => document.getElementById(id);
@@ -53,7 +54,17 @@ const els = {
   progressNote: $("progress-note"),
   progressMessage: $("progress-message"),
   historyCount: $("history-count"),
-  historyList: $("history-list")
+  historyList: $("history-list"),
+  skillsModal: $("skills-modal"),
+  skillsModalClose: $("skills-modal-close"),
+  skillsModalTitle: $("skills-modal-title"),
+  skillsModalContext: $("skills-modal-context"),
+  skillsSearch: $("skills-search"),
+  skillsTree: $("skills-tree"),
+  requiredSkillCount: $("required-skill-count"),
+  preferredSkillCount: $("preferred-skill-count"),
+  saveSkillsButton: $("save-skills-button"),
+  skillsMessage: $("skills-message")
 };
 
 function esc(value) {
@@ -109,6 +120,18 @@ async function claimOwnership() {
   );
 
   if (error) throw error;
+}
+
+async function loadSkillCatalog() {
+  const {data,error}=await myMetricsSupabase
+    .from("skill_catalog")
+    .select("id,skill_family,skill_name,sort_order")
+    .eq("is_active",true)
+    .order("skill_family")
+    .order("sort_order")
+    .order("skill_name");
+  if(error)throw error;
+  state.skillCatalog=data||[];
 }
 
 async function loadWorkspace() {
@@ -439,6 +462,112 @@ async function submitProgressUpdate() {
   await loadMetricHistory(row.metric_id);
 }
 
+
+function setSkillsMessage(text,type=""){
+  els.skillsMessage.textContent=text||"";
+  els.skillsMessage.className=`form-message ${type}`.trim();
+}
+function currentSkillMap(row){
+  const map=new Map();
+  (Array.isArray(row.skills)?row.skills:[]).forEach(skill=>{
+    map.set(Number(skill.skill_id),skill.requirement_level);
+  });
+  return map;
+}
+function collectSkillSelections(){
+  const required=[],preferred=[];
+  els.skillsTree.querySelectorAll("[data-skill-requirement]").forEach(select=>{
+    const id=Number(select.dataset.skillRequirement);
+    if(select.value==="required")required.push(id);
+    if(select.value==="preferred")preferred.push(id);
+  });
+  return {required,preferred};
+}
+function updateSkillSelectionCounts(){
+  const selected=collectSkillSelections();
+  els.requiredSkillCount.textContent=`${selected.required.length} Required`;
+  els.preferredSkillCount.textContent=`${selected.preferred.length} Preferred`;
+}
+function renderSkillsTree(row){
+  const q=els.skillsSearch.value.trim().toLowerCase();
+  const current=currentSkillMap(row);
+  const byFamily=new Map();
+
+  state.skillCatalog
+    .filter(skill=>!q||skill.skill_name.toLowerCase().includes(q)||skill.skill_family.toLowerCase().includes(q))
+    .forEach(skill=>{
+      if(!byFamily.has(skill.skill_family))byFamily.set(skill.skill_family,[]);
+      byFamily.get(skill.skill_family).push(skill);
+    });
+
+  if(!byFamily.size){
+    els.skillsTree.innerHTML=`<div class="empty-owner-state">Skill tidak ditemukan.</div>`;
+    updateSkillSelectionCounts();
+    return;
+  }
+
+  els.skillsTree.innerHTML=[...byFamily.entries()].map(([family,skills])=>{
+    const selectedCount=skills.filter(skill=>current.has(Number(skill.id))).length;
+    return `
+      <details class="skills-family" ${selectedCount||q?"open":""}>
+        <summary>
+          <span>${esc(family)}</span>
+          <span class="skills-family-count">${selectedCount}/${skills.length} selected</span>
+        </summary>
+        <div class="skills-family-body">
+          ${skills.map(skill=>`
+            <label class="skill-manage-row">
+              <span class="skill-name">${esc(skill.skill_name)}</span>
+              <select data-skill-requirement="${skill.id}">
+                <option value="" ${!current.has(Number(skill.id))?"selected":""}>None</option>
+                <option value="preferred" ${current.get(Number(skill.id))==="preferred"?"selected":""}>Preferred</option>
+                <option value="required" ${current.get(Number(skill.id))==="required"?"selected":""}>Required</option>
+              </select>
+            </label>
+          `).join("")}
+        </div>
+      </details>`;
+  }).join("");
+
+  els.skillsTree.querySelectorAll("[data-skill-requirement]").forEach(select=>{
+    select.addEventListener("change",updateSkillSelectionCounts);
+  });
+  updateSkillSelectionCounts();
+}
+function openSkillsModal(metricId){
+  const row=state.rows.find(item=>item.metric_id===metricId);
+  if(!row)return;
+  state.selectedMetricId=metricId;
+  els.skillsModalTitle.textContent="Manage Skill Requirements";
+  els.skillsModalContext.innerHTML=`
+    <strong>${esc(row.kpi_id)} · ${esc(row.kpi_title)}</strong><br>
+    ${esc(row.metric_id)} · ${esc(row.metric_name)}<br>
+    Ownership: <strong>${esc(ownerRoleLabel(row.owner_role))}</strong>
+  `;
+  els.skillsSearch.value="";
+  setSkillsMessage("");
+  renderSkillsTree(row);
+  els.skillsModal.hidden=false;
+}
+async function saveMetricSkills(){
+  const row=selectedMetricRow();
+  if(!row)throw new Error("Metric tidak ditemukan.");
+  const selected=collectSkillSelections();
+
+  const {error}=await myMetricsSupabase.rpc("save_owner_metric_skills",{
+    p_metric_id:row.metric_id,
+    p_required_skill_ids:selected.required,
+    p_preferred_skill_ids:selected.preferred
+  });
+  if(error)throw error;
+
+  await loadWorkspace();
+  const refreshed=selectedMetricRow();
+  if(refreshed)renderSkillsTree(refreshed);
+  renderSummary();
+  renderRows();
+}
+
 function renderRows() {
   const rows = filteredRows();
 
@@ -606,6 +735,12 @@ function renderRows() {
               : ""
           }
 
+          <button class="secondary-button"
+                  type="button"
+                  data-manage-skills="${esc(row.metric_id)}">
+            Manage Skills
+          </button>
+
           <button class="primary-button"
                   type="button"
                   data-update-progress="${esc(row.metric_id)}">
@@ -623,6 +758,14 @@ function renderRows() {
         openProgressModal(button.dataset.updateProgress);
       });
     });
+
+  els.metricList
+    .querySelectorAll("[data-manage-skills]")
+    .forEach(button => {
+      button.addEventListener("click", () => {
+        openSkillsModal(button.dataset.manageSkills);
+      });
+    });
 }
 
 function renderAll() {
@@ -637,7 +780,7 @@ async function enterWorkspace(session) {
   try {
     // Email-first ownership assignment becomes UID-bound here.
     await claimOwnership();
-    await loadWorkspace();
+    await Promise.all([loadWorkspace(),loadSkillCatalog()]);
 
     els.loginPanel.hidden = true;
     els.workspace.hidden = false;
@@ -722,6 +865,20 @@ els.progressForm.addEventListener("submit", async event => {
   } catch (error) {
     console.error(error);
     setProgressMessage(error.message, "error");
+  }
+});
+
+els.skillsModalClose.addEventListener("click",()=>{els.skillsModal.hidden=true;});
+els.skillsModal.addEventListener("click",event=>{if(event.target===els.skillsModal)els.skillsModal.hidden=true;});
+els.skillsSearch.addEventListener("input",()=>{const row=selectedMetricRow();if(row)renderSkillsTree(row);});
+els.saveSkillsButton.addEventListener("click",async()=>{
+  try{
+    setSkillsMessage("Saving…");
+    await saveMetricSkills();
+    setSkillsMessage("Skill requirements berhasil diperbarui.","success");
+  }catch(error){
+    console.error(error);
+    setSkillsMessage(error.message,"error");
   }
 });
 

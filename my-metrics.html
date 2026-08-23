@@ -254,6 +254,45 @@
     </section>
   </div>
 
+
+  <div id="skills-modal" class="modal-backdrop" hidden>
+    <section class="modal-card skills-modal-card">
+      <div class="modal-heading">
+        <div>
+          <p class="eyebrow">SKILL REQUIREMENTS</p>
+          <h2 id="skills-modal-title">Manage Skills</h2>
+        </div>
+        <button id="skills-modal-close" class="close-button" type="button">×</button>
+      </div>
+      <div id="skills-modal-context" class="review-context"></div>
+
+      <div class="skills-toolbar">
+        <label>
+          <span>Cari skill</span>
+          <input id="skills-search" type="search" placeholder="Cari nama skill..." />
+        </label>
+        <div class="skills-summary">
+          <span id="required-skill-count">0 Required</span>
+          <span id="preferred-skill-count">0 Preferred</span>
+        </div>
+      </div>
+
+      <div id="skills-tree" class="skills-tree"></div>
+
+      <div class="owner-update-guidance">
+        Pilih <strong>Required</strong> untuk skill wajib dan
+        <strong>Preferred</strong> untuk skill pendukung.
+      </div>
+
+      <div class="form-actions">
+        <span id="skills-message" class="form-message"></span>
+        <button id="save-skills-button" class="primary-button" type="button">
+          Save Skills
+        </button>
+      </div>
+    </section>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
   <script src="my-metrics.js"></script>
