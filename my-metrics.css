@@ -789,3 +789,86 @@ textarea:focus{
   .owner-application-grid{grid-template-columns:1fr}
   .applications-toolbar label{width:100%}
 }
+
+
+/* ============================================================
+   Phase 5C.4F — Skill Taxonomy Request
+   ============================================================ */
+
+.skills-action-buttons{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap
+}
+
+.skill-request-modal-card{
+  width:min(760px,100%)
+}
+
+.skill-request-history{
+  margin-top:18px;
+  padding-top:14px;
+  border-top:1px solid var(--line)
+}
+
+.skill-request-list{
+  display:grid;
+  gap:7px;
+  max-height:300px;
+  overflow:auto
+}
+
+.skill-request-row{
+  padding:10px;
+  border:1px solid var(--line);
+  border-radius:9px;
+  background:#fff
+}
+
+.skill-request-row-top{
+  display:flex;
+  justify-content:space-between;
+  gap:10px
+}
+
+.skill-request-row strong{
+  display:block;
+  font-size:10px
+}
+
+.skill-request-row .request-meta{
+  margin-top:3px;
+  color:var(--muted);
+  font-size:9px
+}
+
+.skill-request-row .request-note{
+  margin-top:6px;
+  color:#46515B;
+  font-size:10px
+}
+
+.badge.merged{
+  background:rgba(21,88,154,.09);
+  color:var(--accent)
+}
+
+.badge.approved{
+  background:rgba(122,153,6,.12);
+  color:#5D7305
+}
+
+@media(max-width:580px){
+  .skills-action-buttons{
+    width:100%;
+    flex-direction:column
+  }
+
+  .skills-action-buttons button{
+    width:100%
+  }
+
+  .skill-request-row-top{
+    flex-direction:column
+  }
+}

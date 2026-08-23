@@ -636,3 +636,102 @@ fieldset{
   border-color:#DCE3EA;
   background:#F7F9FC
 }
+
+
+/* ============================================================
+   Phase 5C.4F — Admin Skill Taxonomy Governance
+   ============================================================ */
+
+.skill-request-admin-list{
+  display:grid;
+  gap:9px
+}
+
+.skill-request-admin-card{
+  padding:14px;
+  border:1px solid var(--line);
+  border-radius:11px;
+  background:#fff
+}
+
+.skill-request-admin-top{
+  display:flex;
+  justify-content:space-between;
+  gap:14px
+}
+
+.skill-request-admin-top h3{
+  margin:0 0 3px;
+  font-size:14px
+}
+
+.skill-request-admin-meta{
+  margin:0;
+  color:var(--muted);
+  font-size:9px
+}
+
+.skill-request-admin-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:11px
+}
+
+.skill-request-admin-block strong{
+  display:block;
+  margin-bottom:4px;
+  color:#526170;
+  font-size:9px;
+  text-transform:uppercase
+}
+
+.skill-request-admin-block p{
+  margin:0;
+  font-size:10px
+}
+
+.skill-request-admin-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:7px;
+  margin-top:11px;
+  padding-top:10px;
+  border-top:1px solid var(--line)
+}
+
+.skill-request-admin-actions .reject-button{
+  min-height:35px;
+  padding:0 10px;
+  border:1px solid #E6C8C8;
+  border-radius:8px;
+  background:#fff;
+  color:#B00000;
+  font-weight:850
+}
+
+.skill-resolve-card{
+  width:min(650px,100%)
+}
+
+.badge.merged{
+  background:rgba(21,88,154,.09);
+  color:var(--sai-baltic,#15589A)
+}
+
+.badge.approved{
+  background:rgba(122,153,6,.12);
+  color:#5D7305
+}
+
+@media(max-width:680px){
+  .skill-request-admin-top,
+  .skill-request-admin-actions{
+    align-items:stretch;
+    flex-direction:column
+  }
+
+  .skill-request-admin-grid{
+    grid-template-columns:1fr
+  }
+}

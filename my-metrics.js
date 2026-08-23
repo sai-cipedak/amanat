@@ -20,7 +20,8 @@ const state = {
   applicationsMetricId: null,
   applications: [],
   reviewApplicationId: null,
-  reviewDecision: null
+  reviewDecision: null,
+  skillRequests: []
 };
 
 const $ = id => document.getElementById(id);
@@ -71,6 +72,25 @@ const els = {
   preferredSkillCount: $("preferred-skill-count"),
   saveSkillsButton: $("save-skills-button"),
   skillsMessage: $("skills-message"),
+  requestSkillButton: $("request-skill-button"),
+
+  skillRequestModal: $("skill-request-modal"),
+  skillRequestClose: $("skill-request-close"),
+  skillRequestTitle: $("skill-request-title"),
+  skillRequestContext: $("skill-request-context"),
+  skillRequestForm: $("skill-request-form"),
+  skillRequestType: $("skill-request-type"),
+  skillRequestLevel: $("skill-request-level"),
+  existingFamilyField: $("existing-family-field"),
+  newFamilyField: $("new-family-field"),
+  skillRequestFamilySelect: $("skill-request-family-select"),
+  skillRequestFamilyInput: $("skill-request-family-input"),
+  skillRequestName: $("skill-request-name"),
+  skillRequestDescription: $("skill-request-description"),
+  skillRequestRationale: $("skill-request-rationale"),
+  skillRequestMessage: $("skill-request-message"),
+  skillRequestCount: $("skill-request-count"),
+  skillRequestList: $("skill-request-list"),
 
   opportunityModal: $("opportunity-modal"),
   opportunityModalClose: $("opportunity-modal-close"),
@@ -626,6 +646,201 @@ async function saveMetricSkills(){
   renderRows();
 }
 
+
+
+function setSkillRequestMessage(text,type=""){
+  els.skillRequestMessage.textContent=text||"";
+  els.skillRequestMessage.className=
+    `form-message ${type}`.trim();
+}
+
+function uniqueSkillFamilies(){
+  return [...new Set(
+    state.skillCatalog
+      .map(skill=>skill.skill_family)
+      .filter(Boolean)
+  )].sort((a,b)=>a.localeCompare(b,"id"));
+}
+
+function populateSkillRequestFamilies(){
+  const families=uniqueSkillFamilies();
+
+  els.skillRequestFamilySelect.innerHTML=
+    families.map(family=>`
+      <option value="${esc(family)}">
+        ${esc(family)}
+      </option>
+    `).join("");
+}
+
+function updateSkillRequestType(){
+  const newFamily=
+    els.skillRequestType.value==="new_family_skill";
+
+  els.existingFamilyField.hidden=newFamily;
+  els.newFamilyField.hidden=!newFamily;
+}
+
+async function loadMetricSkillRequests(metricId){
+  const {data,error}=await myMetricsSupabase.rpc(
+    "get_my_metric_skill_requests",
+    {p_metric_id:metricId}
+  );
+
+  if(error)throw error;
+
+  state.skillRequests=data||[];
+  renderSkillRequestHistory();
+}
+
+function renderSkillRequestHistory(){
+  els.skillRequestCount.textContent=state.skillRequests.length;
+
+  if(!state.skillRequests.length){
+    els.skillRequestList.innerHTML=`
+      <div class="empty-owner-state">
+        Belum ada taxonomy request untuk metric ini.
+      </div>
+    `;
+    return;
+  }
+
+  els.skillRequestList.innerHTML=
+    state.skillRequests.map(request=>`
+      <article class="skill-request-row">
+        <div class="skill-request-row-top">
+          <div>
+            <strong>
+              ${esc(request.proposed_skill_family)}
+              · ${esc(request.proposed_skill_name)}
+            </strong>
+
+            <div class="request-meta">
+              ${
+                request.request_type==="new_family_skill"
+                  ? "New Talent Pool + Skill"
+                  : "New Skill"
+              }
+              · ${esc(request.requirement_level)}
+              · ${esc(request.requested_by_email)}
+            </div>
+          </div>
+
+          <span class="badge ${esc(request.request_status)}">
+            ${esc(request.request_status)}
+          </span>
+        </div>
+
+        ${
+          request.rationale
+            ? `<div class="request-note">
+                 ${esc(request.rationale)}
+               </div>`
+            : ""
+        }
+
+        ${
+          request.resolved_skill_name
+            ? `<div class="request-note">
+                 Resolved to:
+                 <strong>${esc(request.resolved_skill_name)}</strong>
+               </div>`
+            : ""
+        }
+
+        ${
+          request.admin_note
+            ? `<div class="request-note">
+                 Admin: ${esc(request.admin_note)}
+               </div>`
+            : ""
+        }
+      </article>
+    `).join("");
+}
+
+async function openSkillRequestModal(){
+  const row=selectedMetricRow();
+  if(!row)return;
+
+  els.skillRequestContext.innerHTML=`
+    <strong>${esc(row.kpi_id)} · ${esc(row.kpi_title)}</strong><br>
+    ${esc(row.metric_id)} · ${esc(row.metric_name)}<br>
+    Ownership: <strong>${esc(ownerRoleLabel(row.owner_role))}</strong>
+  `;
+
+  els.skillRequestType.value="new_skill";
+  els.skillRequestLevel.value="required";
+  els.skillRequestFamilyInput.value="";
+  els.skillRequestName.value="";
+  els.skillRequestDescription.value="";
+  els.skillRequestRationale.value="";
+
+  populateSkillRequestFamilies();
+  updateSkillRequestType();
+  setSkillRequestMessage("");
+
+  els.skillRequestList.innerHTML=`
+    <div class="empty-owner-state">
+      Memuat request history…
+    </div>
+  `;
+
+  els.skillRequestModal.hidden=false;
+
+  try{
+    await loadMetricSkillRequests(row.metric_id);
+  }catch(error){
+    console.error(error);
+    els.skillRequestList.innerHTML=`
+      <div class="empty-owner-state">
+        Gagal memuat request history:
+        ${esc(error.message)}
+      </div>
+    `;
+  }
+}
+
+async function submitSkillRequest(){
+  const row=selectedMetricRow();
+  if(!row)throw new Error("Metric tidak ditemukan.");
+
+  const requestType=els.skillRequestType.value;
+
+  const family=requestType==="new_family_skill"
+    ? els.skillRequestFamilyInput.value.trim()
+    : els.skillRequestFamilySelect.value;
+
+  const name=els.skillRequestName.value.trim();
+
+  if(!family||!name){
+    throw new Error("Talent Pool dan Skill Name wajib diisi.");
+  }
+
+  const {error}=await myMetricsSupabase.rpc(
+    "submit_metric_skill_request",
+    {
+      p_metric_id:row.metric_id,
+      p_request_type:requestType,
+      p_skill_family:family,
+      p_skill_name:name,
+      p_description:
+        els.skillRequestDescription.value.trim()||null,
+      p_requirement_level:
+        els.skillRequestLevel.value,
+      p_rationale:
+        els.skillRequestRationale.value.trim()||null
+    }
+  );
+
+  if(error)throw error;
+
+  els.skillRequestName.value="";
+  els.skillRequestDescription.value="";
+  els.skillRequestRationale.value="";
+
+  await loadMetricSkillRequests(row.metric_id);
+}
 
 function setOpportunityMessage(text,type=""){
   els.opportunityMessage.textContent=text||"";
@@ -1665,6 +1880,50 @@ els.progressForm.addEventListener("submit", async event => {
     setProgressMessage(error.message, "error");
   }
 });
+
+
+els.requestSkillButton.addEventListener(
+  "click",
+  openSkillRequestModal
+);
+
+els.skillRequestClose.addEventListener("click",()=>{
+  els.skillRequestModal.hidden=true;
+});
+
+els.skillRequestModal.addEventListener("click",event=>{
+  if(event.target===els.skillRequestModal){
+    els.skillRequestModal.hidden=true;
+  }
+});
+
+els.skillRequestType.addEventListener(
+  "change",
+  updateSkillRequestType
+);
+
+els.skillRequestForm.addEventListener(
+  "submit",
+  async event=>{
+    event.preventDefault();
+
+    try{
+      setSkillRequestMessage("Submitting…");
+      await submitSkillRequest();
+
+      setSkillRequestMessage(
+        "Request berhasil dikirim ke Admin Taxonomy Review.",
+        "success"
+      );
+    }catch(error){
+      console.error(error);
+      setSkillRequestMessage(
+        error.message,
+        "error"
+      );
+    }
+  }
+);
 
 els.skillsModalClose.addEventListener("click",()=>{els.skillsModal.hidden=true;});
 els.skillsModal.addEventListener("click",event=>{if(event.target===els.skillsModal)els.skillsModal.hidden=true;});

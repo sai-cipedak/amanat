@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="robots" content="noindex,nofollow" />
   <title>Volunteer Admin · SAI Cipedak</title>
-  <link rel="stylesheet" href="volunteer-admin.css" />
-  <link rel="stylesheet" href="sai-theme.css" />
+  <link rel="stylesheet" href="volunteer-admin.css?v=5c4f-1" />
+  <link rel="stylesheet" href="sai-theme.css?v=5c4f-1" />
 </head>
 <body>
   <header class="topbar">
@@ -77,6 +77,15 @@
         <button id="tab-applications" class="tab-button" type="button">
           Volunteer Applications
           <span id="pending-tab-badge" class="tab-badge">0</span>
+        </button>
+
+        <button id="tab-skill-requests"
+                class="tab-button"
+                type="button"
+                hidden>
+          Skill Requests
+          <span id="pending-skill-tab-badge"
+                class="tab-badge">0</span>
         </button>
       </nav>
 
@@ -298,6 +307,55 @@
           <div id="application-list" class="application-list"></div>
         </section>
       </section>
+
+      <!-- ==================================================== -->
+      <!-- Skill Taxonomy Requests -->
+      <!-- ==================================================== -->
+      <section id="skill-request-panel" hidden>
+        <section class="panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">SKILL TAXONOMY GOVERNANCE</p>
+              <h2>Skill & Talent Pool Requests</h2>
+            </div>
+
+            <span class="muted">
+              Admin menjaga taxonomy global; owner mengajukan kebutuhan dari metric.
+            </span>
+          </div>
+
+          <div class="filter-grid">
+            <label class="wide">
+              <span>Cari</span>
+              <input id="skill-request-search"
+                     type="search"
+                     placeholder="Skill, talent pool, KPI, metric, requester..." />
+            </label>
+
+            <label>
+              <span>Status</span>
+              <select id="skill-request-status-filter">
+                <option value="pending">Pending</option>
+                <option value="">Semua status</option>
+                <option value="approved">Approved</option>
+                <option value="merged">Merged</option>
+                <option value="rejected">Rejected</option>
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="list-heading">
+            <strong id="skill-request-result-count">
+              0 requests
+            </strong>
+          </div>
+
+          <div id="skill-request-admin-list"
+               class="skill-request-admin-list"></div>
+        </section>
+      </section>
     </section>
   </main>
 
@@ -399,6 +457,62 @@
     </section>
   </div>
 
+
+  <div id="skill-resolve-modal"
+       class="modal-backdrop"
+       hidden>
+    <section class="modal-card skill-resolve-card">
+      <div class="modal-heading">
+        <div>
+          <p id="skill-resolve-eyebrow"
+             class="eyebrow">
+            TAXONOMY REVIEW
+          </p>
+          <h2 id="skill-resolve-title">Resolve Skill Request</h2>
+        </div>
+
+        <button id="skill-resolve-close"
+                class="close-button"
+                type="button">×</button>
+      </div>
+
+      <div id="skill-resolve-context"
+           class="review-context"></div>
+
+      <form id="skill-resolve-form">
+        <label id="skill-merge-field"
+               hidden>
+          <span>Merge into Existing Skill *</span>
+          <select id="skill-merge-select"></select>
+        </label>
+
+        <label>
+          <span>Admin Note</span>
+          <textarea id="skill-resolve-note"
+                    rows="4"
+                    placeholder="Catatan keputusan, standardisasi nama, atau alasan reject."></textarea>
+        </label>
+
+        <div class="owner-guidance">
+          <strong>Approve</strong> membuat canonical skill baru.
+          <strong>Merge</strong> memakai skill existing.
+          Keduanya otomatis menghubungkan skill ke metric peminta.
+        </div>
+
+        <div class="form-actions">
+          <span id="skill-resolve-message"
+                class="form-message"></span>
+
+          <button id="skill-resolve-submit"
+                  class="primary-button"
+                  type="submit">
+            Confirm
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+
   <!-- Review modal -->
   <div id="review-modal" class="modal-backdrop" hidden>
     <section class="modal-card">
@@ -442,6 +556,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
-  <script src="volunteer-admin.js"></script>
+  <script src="volunteer-admin.js?v=5c4f-1"></script>
 </body>
 </html>

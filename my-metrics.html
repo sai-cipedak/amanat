@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="robots" content="noindex,nofollow" />
   <title>My Metrics · SAI Cipedak</title>
-  <link rel="stylesheet" href="my-metrics.css?v=5c4e-1" />
-  <link rel="stylesheet" href="sai-theme.css?v=5c4e-1" />
+  <link rel="stylesheet" href="my-metrics.css?v=5c4f-1" />
+  <link rel="stylesheet" href="sai-theme.css?v=5c4f-1" />
 </head>
 
 <body>
@@ -45,7 +45,7 @@
     </div>
   </header>
 
-  <main class="shell main-shell" data-build="5C.4E-1">
+  <main class="shell main-shell" data-build="5C.4F-1">
 
     <section id="login-panel" class="auth-card">
       <p class="eyebrow">METRIC OWNER ACCESS</p>
@@ -286,9 +286,20 @@
 
       <div class="form-actions">
         <span id="skills-message" class="form-message"></span>
-        <button id="save-skills-button" class="primary-button" type="button">
-          Save Skills
-        </button>
+
+        <div class="skills-action-buttons">
+          <button id="request-skill-button"
+                  class="secondary-button"
+                  type="button">
+            Request New Skill
+          </button>
+
+          <button id="save-skills-button"
+                  class="primary-button"
+                  type="button">
+            Save Skills
+          </button>
+        </div>
       </div>
     </section>
   </div>
@@ -557,8 +568,118 @@
     </section>
   </div>
 
+
+  <div id="skill-request-modal"
+       class="modal-backdrop"
+       hidden>
+    <section class="modal-card skill-request-modal-card">
+      <div class="modal-heading">
+        <div>
+          <p class="eyebrow">SKILL TAXONOMY REQUEST</p>
+          <h2 id="skill-request-title">Request New Skill</h2>
+        </div>
+
+        <button id="skill-request-close"
+                class="close-button"
+                type="button">×</button>
+      </div>
+
+      <div id="skill-request-context"
+           class="review-context"></div>
+
+      <form id="skill-request-form">
+        <div class="form-grid">
+          <label>
+            <span>Request Type *</span>
+            <select id="skill-request-type">
+              <option value="new_skill">
+                Add Skill to Existing Talent Pool
+              </option>
+              <option value="new_family_skill">
+                Propose New Talent Pool + Skill
+              </option>
+            </select>
+          </label>
+
+          <label>
+            <span>Requirement *</span>
+            <select id="skill-request-level">
+              <option value="required">Required</option>
+              <option value="preferred">Preferred</option>
+            </select>
+          </label>
+
+          <label id="existing-family-field" class="wide">
+            <span>Talent Pool *</span>
+            <select id="skill-request-family-select"></select>
+          </label>
+
+          <label id="new-family-field"
+                 class="wide"
+                 hidden>
+            <span>Proposed Talent Pool *</span>
+            <input id="skill-request-family-input"
+                   type="text"
+                   placeholder="Contoh: AI & Emerging Technology" />
+          </label>
+
+          <label class="wide">
+            <span>Skill Name *</span>
+            <input id="skill-request-name"
+                   type="text"
+                   placeholder="Contoh: AI Governance" />
+          </label>
+
+          <label class="wide">
+            <span>Description</span>
+            <textarea id="skill-request-description"
+                      rows="3"
+                      placeholder="Jelaskan cakupan skill ini."></textarea>
+          </label>
+
+          <label class="wide">
+            <span>Why is this needed?</span>
+            <textarea id="skill-request-rationale"
+                      rows="3"
+                      placeholder="Jelaskan kenapa skill ini dibutuhkan untuk metric tersebut."></textarea>
+          </label>
+        </div>
+
+        <div class="owner-update-guidance">
+          Request akan masuk ke <strong>Admin Taxonomy Review</strong>.
+          Jika disetujui atau digabung dengan skill existing,
+          skill akan otomatis ditambahkan ke requirement metric ini.
+        </div>
+
+        <div class="form-actions">
+          <span id="skill-request-message"
+                class="form-message"></span>
+
+          <button class="primary-button"
+                  type="submit">
+            Submit Request
+          </button>
+        </div>
+      </form>
+
+      <section class="skill-request-history">
+        <div class="history-heading">
+          <div>
+            <p class="eyebrow">REQUEST HISTORY</p>
+            <h3>Requests untuk metric ini</h3>
+          </div>
+          <span id="skill-request-count"
+                class="badge">0</span>
+        </div>
+
+        <div id="skill-request-list"
+             class="skill-request-list"></div>
+      </section>
+    </section>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
-  <script src="my-metrics.js?v=5c4e-1"></script>
+  <script src="my-metrics.js?v=5c4f-1"></script>
 </body>
 </html>

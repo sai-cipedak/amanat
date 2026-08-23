@@ -19,7 +19,10 @@ const state = {
   selectedOpportunityId: null,
   reviewApplicationId: null,
   reviewDecision: null,
-  ownership: []
+  ownership: [],
+  skillRequests: [],
+  skillResolveRequestId: null,
+  skillResolveDecision: null
 };
 
 const $ = id => document.getElementById(id);
@@ -42,8 +45,11 @@ const els = {
 
   tabOpportunities: $("tab-opportunities"),
   tabApplications: $("tab-applications"),
+  tabSkillRequests: $("tab-skill-requests"),
+  pendingSkillTabBadge: $("pending-skill-tab-badge"),
   opportunityPanel: $("opportunity-panel"),
   applicationPanel: $("application-panel"),
+  skillRequestPanel: $("skill-request-panel"),
 
   opportunitySearch: $("opportunity-search"),
   opportunityCluster: $("opportunity-cluster-filter"),
@@ -102,6 +108,23 @@ const els = {
   applicationStatus: $("application-status-filter"),
   applicationResultCount: $("application-result-count"),
   applicationList: $("application-list"),
+
+  skillRequestSearch: $("skill-request-search"),
+  skillRequestStatus: $("skill-request-status-filter"),
+  skillRequestResultCount: $("skill-request-result-count"),
+  skillRequestAdminList: $("skill-request-admin-list"),
+
+  skillResolveModal: $("skill-resolve-modal"),
+  skillResolveClose: $("skill-resolve-close"),
+  skillResolveEyebrow: $("skill-resolve-eyebrow"),
+  skillResolveTitle: $("skill-resolve-title"),
+  skillResolveContext: $("skill-resolve-context"),
+  skillResolveForm: $("skill-resolve-form"),
+  skillMergeField: $("skill-merge-field"),
+  skillMergeSelect: $("skill-merge-select"),
+  skillResolveNote: $("skill-resolve-note"),
+  skillResolveMessage: $("skill-resolve-message"),
+  skillResolveSubmit: $("skill-resolve-submit"),
 
   reviewModal: $("review-modal"),
   reviewClose: $("review-close"),
@@ -243,6 +266,23 @@ function currentMetricOwnership(metricId) {
   );
 }
 
+
+async function loadSkillRequests(){
+  if(state.profile?.role!=="admin"){
+    state.skillRequests=[];
+    return;
+  }
+
+  const {data,error}=await volunteerAdminSupabase.rpc(
+    "get_admin_skill_requests",
+    {p_status:null}
+  );
+
+  if(error)throw error;
+
+  state.skillRequests=data||[];
+}
+
 async function loadContributorCount() {
   const { count, error } = await volunteerAdminSupabase
     .from("metric_contributors")
@@ -259,13 +299,15 @@ async function reloadData() {
     loadOpportunities(),
     loadApplications(),
     loadContributorCount(),
-    loadOwnership()
+    loadOwnership(),
+    loadSkillRequests()
   ]);
 
   populateClusterFilters();
   renderSummary();
   renderOpportunityList();
   renderApplicationList();
+  renderSkillRequestAdminList();
 
   if (state.selectedOpportunityId) {
     const selected = selectedOpportunity();
@@ -323,6 +365,12 @@ function renderSummary() {
   els.inactiveCount.textContent = inactive;
   els.pendingCount.textContent = pending;
   els.pendingTabBadge.textContent = pending;
+
+  const pendingSkillRequests=state.skillRequests.filter(
+    row=>row.request_status==="pending"
+  ).length;
+
+  els.pendingSkillTabBadge.textContent=pendingSkillRequests;
   els.contributorCount.textContent = state.activeContributorCount;
 }
 
@@ -1176,14 +1224,324 @@ async function submitReview() {
   await reloadData();
 }
 
+
+function filteredSkillRequests(){
+  const q=els.skillRequestSearch.value
+    .trim()
+    .toLowerCase();
+
+  const status=els.skillRequestStatus.value;
+
+  return state.skillRequests.filter(row=>{
+    const haystack=[
+      row.proposed_skill_family,
+      row.proposed_skill_name,
+      row.metric_id,
+      row.metric_name,
+      row.kpi_id,
+      row.kpi_title,
+      row.cluster,
+      row.requested_by_email,
+      row.rationale
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+
+    return(
+      (!q||haystack.includes(q)) &&
+      (!status||row.request_status===status)
+    );
+  });
+}
+
+function renderSkillRequestAdminList(){
+  if(!els.skillRequestAdminList)return;
+
+  if(state.profile?.role!=="admin"){
+    els.skillRequestAdminList.innerHTML="";
+    return;
+  }
+
+  const rows=filteredSkillRequests();
+
+  els.skillRequestResultCount.textContent=
+    `${rows.length} request${rows.length===1?"":"s"}`;
+
+  if(!rows.length){
+    els.skillRequestAdminList.innerHTML=
+      `<div class="empty-state">
+         Tidak ada skill request yang cocok.
+       </div>`;
+    return;
+  }
+
+  els.skillRequestAdminList.innerHTML=rows.map(row=>`
+    <article class="skill-request-admin-card">
+      <div class="skill-request-admin-top">
+        <div>
+          <h3>
+            ${esc(row.proposed_skill_family)}
+            · ${esc(row.proposed_skill_name)}
+          </h3>
+
+          <p class="skill-request-admin-meta">
+            ${
+              row.request_type==="new_family_skill"
+                ? "NEW TALENT POOL + SKILL"
+                : "NEW SKILL"
+            }
+            · ${esc(row.requirement_level)}
+            · ${esc(row.requested_by_email)}
+          </p>
+        </div>
+
+        <span class="badge ${esc(row.request_status)}">
+          ${esc(row.request_status)}
+        </span>
+      </div>
+
+      <div class="skill-request-admin-grid">
+        <div class="skill-request-admin-block">
+          <strong>Requested For</strong>
+          <p>
+            ${esc(row.kpi_id)} · ${esc(row.kpi_title)}<br>
+            ${esc(row.metric_id)} · ${esc(row.metric_name)}
+          </p>
+        </div>
+
+        <div class="skill-request-admin-block">
+          <strong>Cluster</strong>
+          <p>${esc(row.cluster||"—")}</p>
+        </div>
+
+        <div class="skill-request-admin-block">
+          <strong>Description</strong>
+          <p>${esc(row.proposed_description||"—")}</p>
+        </div>
+
+        <div class="skill-request-admin-block">
+          <strong>Rationale</strong>
+          <p>${esc(row.rationale||"—")}</p>
+        </div>
+      </div>
+
+      ${
+        row.admin_note
+          ? `<div class="owner-guidance">
+               <strong>Admin note:</strong>
+               ${esc(row.admin_note)}
+             </div>`
+          : ""
+      }
+
+      ${
+        row.resolved_skill_name
+          ? `<div class="owner-guidance">
+               Resolved to:
+               <strong>${esc(row.resolved_skill_name)}</strong>
+             </div>`
+          : ""
+      }
+
+      ${
+        row.request_status==="pending"
+          ? `
+            <div class="skill-request-admin-actions">
+              <button class="reject-button"
+                      type="button"
+                      data-skill-resolve="${row.request_id}"
+                      data-decision="reject">
+                Reject
+              </button>
+
+              <button class="secondary-button"
+                      type="button"
+                      data-skill-resolve="${row.request_id}"
+                      data-decision="merge">
+                Merge Existing
+              </button>
+
+              <button class="primary-button"
+                      type="button"
+                      data-skill-resolve="${row.request_id}"
+                      data-decision="approve">
+                Approve New
+              </button>
+            </div>
+          `
+          : ""
+      }
+    </article>
+  `).join("");
+
+  els.skillRequestAdminList
+    .querySelectorAll("[data-skill-resolve]")
+    .forEach(button=>{
+      button.addEventListener("click",()=>{
+        openSkillResolveModal(
+          Number(button.dataset.skillResolve),
+          button.dataset.decision
+        );
+      });
+    });
+}
+
+function setSkillResolveMessage(text,type=""){
+  els.skillResolveMessage.textContent=text||"";
+  els.skillResolveMessage.className=
+    `form-message ${type}`.trim();
+}
+
+function populateMergeSkillOptions(request){
+  const sorted=[...state.skills].sort((a,b)=>{
+    const family=a.skill_family.localeCompare(
+      b.skill_family,
+      "id"
+    );
+
+    return family||
+      a.skill_name.localeCompare(b.skill_name,"id");
+  });
+
+  els.skillMergeSelect.innerHTML=
+    sorted.map(skill=>`
+      <option value="${skill.id}">
+        ${esc(skill.skill_family)} · ${esc(skill.skill_name)}
+      </option>
+    `).join("");
+
+  // Try to preselect a same-family candidate.
+  const sameFamily=sorted.find(skill=>
+    skill.skill_family.toLowerCase()===
+    request.proposed_skill_family.toLowerCase()
+  );
+
+  if(sameFamily){
+    els.skillMergeSelect.value=String(sameFamily.id);
+  }
+}
+
+function openSkillResolveModal(requestId,decision){
+  const request=state.skillRequests.find(
+    row=>Number(row.request_id)===Number(requestId)
+  );
+
+  if(!request)return;
+
+  state.skillResolveRequestId=requestId;
+  state.skillResolveDecision=decision;
+
+  const labels={
+    approve:["APPROVE NEW SKILL","Approve Taxonomy Request"],
+    merge:["MERGE REQUEST","Merge with Existing Skill"],
+    reject:["REJECT REQUEST","Reject Taxonomy Request"]
+  };
+
+  els.skillResolveEyebrow.textContent=labels[decision][0];
+  els.skillResolveTitle.textContent=labels[decision][1];
+
+  els.skillResolveContext.innerHTML=`
+    <strong>
+      ${esc(request.proposed_skill_family)}
+      · ${esc(request.proposed_skill_name)}
+    </strong><br>
+    ${esc(request.metric_id)} · ${esc(request.metric_name)}<br>
+    Requested as:
+    <strong>${esc(request.requirement_level)}</strong>
+  `;
+
+  els.skillMergeField.hidden=decision!=="merge";
+
+  if(decision==="merge"){
+    populateMergeSkillOptions(request);
+  }
+
+  els.skillResolveNote.value="";
+
+  els.skillResolveSubmit.textContent=
+    decision==="approve"
+      ? "Approve & Add"
+      : decision==="merge"
+        ? "Merge & Link"
+        : "Reject Request";
+
+  setSkillResolveMessage("");
+  els.skillResolveModal.hidden=false;
+}
+
+async function resolveSkillRequest(){
+  const request=state.skillRequests.find(
+    row=>
+      Number(row.request_id)===
+      Number(state.skillResolveRequestId)
+  );
+
+  if(!request){
+    throw new Error("Skill request tidak ditemukan.");
+  }
+
+  const mergeSkillId=
+    state.skillResolveDecision==="merge"
+      ? Number(els.skillMergeSelect.value)
+      : null;
+
+  const {error}=await volunteerAdminSupabase.rpc(
+    "resolve_skill_taxonomy_request",
+    {
+      p_request_id:request.request_id,
+      p_decision:state.skillResolveDecision,
+      p_existing_skill_id:mergeSkillId,
+      p_admin_note:
+        els.skillResolveNote.value.trim()||null
+    }
+  );
+
+  if(error)throw error;
+
+  els.skillResolveModal.hidden=true;
+  state.skillResolveRequestId=null;
+  state.skillResolveDecision=null;
+
+  await Promise.all([
+    loadSkills(),
+    loadSkillRequests(),
+    loadOpportunities()
+  ]);
+
+  renderSummary();
+  renderSkillRequestAdminList();
+  renderOpportunityList();
+
+  if(state.selectedOpportunityId){
+    const selected=selectedOpportunity();
+    if(selected)renderOpportunityEditor(selected);
+  }
+}
+
 function setTab(tab) {
   const applications = tab === "applications";
+  const skills = tab === "skills";
+  const opportunities = !applications && !skills;
 
-  els.tabOpportunities.classList.toggle("active", !applications);
-  els.tabApplications.classList.toggle("active", applications);
+  els.tabOpportunities.classList.toggle(
+    "active",
+    opportunities
+  );
 
-  els.opportunityPanel.hidden = applications;
+  els.tabApplications.classList.toggle(
+    "active",
+    applications
+  );
+
+  els.tabSkillRequests.classList.toggle(
+    "active",
+    skills
+  );
+
+  els.opportunityPanel.hidden = !opportunities;
   els.applicationPanel.hidden = !applications;
+  els.skillRequestPanel.hidden = !skills;
 }
 
 async function enterAdmin(session) {
@@ -1222,6 +1580,13 @@ async function enterAdmin(session) {
     profile.display_name || session.user.email;
 
   els.userRole.textContent = profile.role;
+
+  els.tabSkillRequests.hidden =
+    profile.role !== "admin";
+
+  if(profile.role !== "admin"){
+    els.skillRequestPanel.hidden = true;
+  }
 
   await reloadData();
 }
@@ -1269,6 +1634,12 @@ els.tabApplications.addEventListener("click", () =>
   setTab("applications")
 );
 
+els.tabSkillRequests.addEventListener("click", () => {
+  if(state.profile?.role==="admin"){
+    setTab("skills");
+  }
+});
+
 [
   els.opportunitySearch,
   els.opportunityCluster,
@@ -1290,6 +1661,45 @@ els.tabApplications.addEventListener("click", () =>
     renderApplicationList
   );
 });
+
+
+[
+  els.skillRequestSearch,
+  els.skillRequestStatus
+].forEach(input=>{
+  input.addEventListener(
+    input.tagName==="INPUT"?"input":"change",
+    renderSkillRequestAdminList
+  );
+});
+
+els.skillResolveClose.addEventListener("click",()=>{
+  els.skillResolveModal.hidden=true;
+});
+
+els.skillResolveModal.addEventListener("click",event=>{
+  if(event.target===els.skillResolveModal){
+    els.skillResolveModal.hidden=true;
+  }
+});
+
+els.skillResolveForm.addEventListener(
+  "submit",
+  async event=>{
+    event.preventDefault();
+
+    try{
+      setSkillResolveMessage("Processing…");
+      await resolveSkillRequest();
+    }catch(error){
+      console.error(error);
+      setSkillResolveMessage(
+        error.message,
+        "error"
+      );
+    }
+  }
+);
 
 els.opportunityForm.addEventListener("submit", async event => {
   event.preventDefault();
