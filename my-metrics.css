@@ -759,3 +759,10 @@ textarea:focus{
   justify-content:center;
   min-width:132px
 }
+
+.share-modal-card{width:min(720px,100%)}
+#share-link{background:#F7F9FC;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:10px}
+.share-actions{display:flex;gap:8px;flex-wrap:wrap}
+.metric-actions [data-share-opportunity]{display:inline-flex!important;align-items:center;justify-content:center;min-width:122px}
+.metric-actions [data-share-opportunity][disabled]{opacity:.45;cursor:not-allowed}
+@media(max-width:580px){.share-actions{width:100%;flex-direction:column}.share-actions button{width:100%}}

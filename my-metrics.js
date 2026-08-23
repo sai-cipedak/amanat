@@ -15,7 +15,8 @@ const state = {
   selectedMetricId: null,
   updateHistory: [],
   skillCatalog: [],
-  opportunityDetail: null
+  opportunityDetail: null,
+  shareMetricId: null
 };
 
 const $ = id => document.getElementById(id);
@@ -84,7 +85,19 @@ const els = {
   opportunityPublicNote: $("opportunity-public-note"),
   opportunityOwnerNote: $("opportunity-owner-note"),
   opportunityStatusGuidance: $("opportunity-status-guidance"),
-  opportunityMessage: $("opportunity-message")
+  opportunityMessage: $("opportunity-message"),
+
+  shareModal: $("share-modal"),
+  shareModalClose: $("share-modal-close"),
+  shareModalTitle: $("share-modal-title"),
+  shareModalContext: $("share-modal-context"),
+  shareContributionMode: $("share-contribution-mode"),
+  shareSource: $("share-source"),
+  shareCampaign: $("share-campaign"),
+  shareLink: $("share-link"),
+  shareMessage: $("share-message"),
+  copyShareButton: $("copy-share-button"),
+  publishShareButton: $("publish-share-button")
 };
 
 function esc(value) {
@@ -723,6 +736,170 @@ async function saveMetricOpportunity(){
   return data;
 }
 
+
+function setShareMessage(text,type=""){
+  els.shareMessage.textContent=text||"";
+  els.shareMessage.className=`form-message ${type}`.trim();
+}
+
+function normalizeShareParam(value){
+  return String(value||"")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g,"-")
+    .replace(/[^a-z0-9._-]/g,"")
+    .slice(0,80);
+}
+
+function shareMetricRow(){
+  return state.rows.find(
+    row=>row.metric_id===state.shareMetricId
+  )||null;
+}
+
+function buildOwnerShareUrl(){
+  const row=shareMetricRow();
+  if(!row||!row.opportunity_id)return "";
+
+  const url=new URL("opportunities.html",window.location.href);
+  url.searchParams.set("mode","kpi");
+  url.searchParams.set("opportunity",String(row.opportunity_id));
+
+  const mode=els.shareContributionMode.value;
+  const source=normalizeShareParam(els.shareSource.value);
+  const campaign=normalizeShareParam(els.shareCampaign.value);
+
+  if(mode)url.searchParams.set("contribution_mode",mode);
+  if(source)url.searchParams.set("source",source);
+  if(campaign)url.searchParams.set("campaign",campaign);
+
+  return url.toString();
+}
+
+function refreshOwnerShareUrl(){
+  els.shareLink.value=buildOwnerShareUrl();
+}
+
+async function copyOwnerShareUrl(){
+  const value=els.shareLink.value;
+  if(!value)throw new Error("Link belum tersedia.");
+
+  if(navigator.clipboard?.writeText){
+    await navigator.clipboard.writeText(value);
+    return;
+  }
+
+  const textarea=document.createElement("textarea");
+  textarea.value=value;
+  document.body.appendChild(textarea);
+  textarea.select();
+  document.execCommand("copy");
+  textarea.remove();
+}
+
+function renderShareModeOptions(row){
+  const modes=Array.isArray(row.contribution_modes)
+    ? row.contribution_modes
+    : [];
+
+  els.shareContributionMode.innerHTML=
+    `<option value="">Semua allowed mode</option>`+
+    modes.map(mode=>`
+      <option value="${esc(mode)}">
+        ${esc(MODE_LABELS[mode]||mode)}
+      </option>
+    `).join("");
+}
+
+function openOwnerShareModal(metricId){
+  const row=state.rows.find(item=>item.metric_id===metricId);
+  if(!row)return;
+
+  if(!row.opportunity_id){
+    window.alert("Buat dan simpan Volunteer Opportunity terlebih dahulu.");
+    return;
+  }
+
+  state.shareMetricId=metricId;
+
+  els.shareModalTitle.textContent=
+    row.opportunity_status==="open"
+      ? "Share Opportunity"
+      : row.opportunity_status==="paused"
+        ? "Resume & Share Opportunity"
+        : "Publish & Share Opportunity";
+
+  els.shareModalContext.innerHTML=`
+    <strong>${esc(row.kpi_id)} · ${esc(row.kpi_title)}</strong><br>
+    ${esc(row.metric_id)} · ${esc(row.opportunity_title||row.metric_name)}<br>
+    Current status: <strong>${esc(row.opportunity_status||"draft")}</strong>
+  `;
+
+  renderShareModeOptions(row);
+  els.shareSource.value="";
+  els.shareCampaign.value="";
+
+  const blocked=["closed","filled"].includes(row.opportunity_status);
+
+  els.copyShareButton.disabled=row.opportunity_status!=="open";
+  els.publishShareButton.disabled=blocked;
+
+  els.publishShareButton.textContent=
+    row.opportunity_status==="open"
+      ? "Copy Link"
+      : row.opportunity_status==="paused"
+        ? "Resume & Copy"
+        : "Publish & Copy";
+
+  setShareMessage(
+    blocked
+      ? "Closed / Filled opportunity tidak dapat dipublish kembali."
+      : ""
+  );
+
+  refreshOwnerShareUrl();
+  els.shareModal.hidden=false;
+}
+
+async function publishAndCopyOwnerOpportunity(){
+  let row=shareMetricRow();
+  if(!row)throw new Error("Metric tidak ditemukan.");
+
+  if(["closed","filled"].includes(row.opportunity_status)){
+    throw new Error(
+      "Closed / Filled opportunity tidak dapat dipublish kembali."
+    );
+  }
+
+  if(row.opportunity_status!=="open"){
+    const {error}=await myMetricsSupabase.rpc(
+      "publish_owner_metric_opportunity",
+      {p_metric_id:row.metric_id}
+    );
+    if(error)throw error;
+
+    await loadWorkspace();
+    renderSummary();
+    renderRows();
+
+    row=shareMetricRow();
+
+    if(!row||row.opportunity_status!=="open"){
+      throw new Error(
+        "Opportunity published but refreshed Open status was not found."
+      );
+    }
+  }
+
+  refreshOwnerShareUrl();
+  await copyOwnerShareUrl();
+
+  setShareMessage(
+    "Opportunity sudah Open dan link berhasil dicopy.",
+    "success"
+  );
+}
+
 function renderRows() {
   const rows = filteredRows();
 
@@ -892,6 +1069,24 @@ function renderRows() {
 
           <button class="secondary-button"
                   type="button"
+                  data-share-opportunity="${esc(row.metric_id)}"
+                  ${
+                    !row.opportunity_id ||
+                    ["closed","filled"].includes(row.opportunity_status)
+                      ? "disabled"
+                      : ""
+                  }>
+            ${
+              row.opportunity_status === "open"
+                ? "Share Opportunity"
+                : row.opportunity_status === "paused"
+                  ? "Resume & Share"
+                  : "Publish & Share"
+            }
+          </button>
+
+          <button class="secondary-button"
+                  type="button"
                   data-manage-opportunity="${esc(row.metric_id)}">
             Manage Opportunity
           </button>
@@ -940,6 +1135,15 @@ function renderRows() {
           console.error(error);
           window.alert(error.message);
         }
+      });
+    });
+
+  els.metricList
+    .querySelectorAll("[data-share-opportunity]")
+    .forEach(button => {
+      button.addEventListener("click", () => {
+        if(button.disabled)return;
+        openOwnerShareModal(button.dataset.shareOpportunity);
       });
     });
 }
@@ -1087,6 +1291,49 @@ els.opportunityForm.addEventListener("submit",async event=>{
   }catch(error){
     console.error(error);
     setOpportunityMessage(error.message,"error");
+  }
+});
+
+
+els.shareModalClose.addEventListener("click",()=>{
+  els.shareModal.hidden=true;
+});
+
+els.shareModal.addEventListener("click",event=>{
+  if(event.target===els.shareModal){
+    els.shareModal.hidden=true;
+  }
+});
+
+[
+  els.shareContributionMode,
+  els.shareSource,
+  els.shareCampaign
+].forEach(input=>{
+  input.addEventListener(
+    input.tagName==="SELECT"?"change":"input",
+    refreshOwnerShareUrl
+  );
+});
+
+els.copyShareButton.addEventListener("click",async()=>{
+  try{
+    refreshOwnerShareUrl();
+    await copyOwnerShareUrl();
+    setShareMessage("Link berhasil dicopy.","success");
+  }catch(error){
+    console.error(error);
+    setShareMessage(error.message,"error");
+  }
+});
+
+els.publishShareButton.addEventListener("click",async()=>{
+  try{
+    setShareMessage("Publishing…");
+    await publishAndCopyOwnerOpportunity();
+  }catch(error){
+    console.error(error);
+    setShareMessage(error.message,"error");
   }
 });
 

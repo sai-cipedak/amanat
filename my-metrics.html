@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="robots" content="noindex,nofollow" />
   <title>My Metrics · SAI Cipedak</title>
-  <link rel="stylesheet" href="my-metrics.css?v=5c4d3-1" />
-  <link rel="stylesheet" href="sai-theme.css?v=5c4d3-1" />
+  <link rel="stylesheet" href="my-metrics.css?v=5c4d4-1" />
+  <link rel="stylesheet" href="sai-theme.css?v=5c4d4-1" />
 </head>
 
 <body>
@@ -45,7 +45,7 @@
     </div>
   </header>
 
-  <main class="shell main-shell" data-build="5C.4D.3-1">
+  <main class="shell main-shell" data-build="5C.4D.4-1">
 
     <section id="login-panel" class="auth-card">
       <p class="eyebrow">METRIC OWNER ACCESS</p>
@@ -418,8 +418,68 @@
     </section>
   </div>
 
+
+  <div id="share-modal" class="modal-backdrop" hidden>
+    <section class="modal-card share-modal-card">
+      <div class="modal-heading">
+        <div>
+          <p class="eyebrow">PUBLISH & SHARE</p>
+          <h2 id="share-modal-title">Publish & Share</h2>
+        </div>
+        <button id="share-modal-close" class="close-button" type="button">×</button>
+      </div>
+
+      <div id="share-modal-context" class="review-context"></div>
+
+      <div class="form-grid">
+        <label>
+          <span>Contribution Mode</span>
+          <select id="share-contribution-mode">
+            <option value="">Semua allowed mode</option>
+          </select>
+        </label>
+
+        <label>
+          <span>Source / Community</span>
+          <input id="share-source" type="text"
+                 placeholder="Contoh: whatsapp-dk8, famgath, ots30" />
+        </label>
+
+        <label class="wide">
+          <span>Campaign</span>
+          <input id="share-campaign" type="text"
+                 placeholder="Contoh: literacy-recruitment-aug26" />
+        </label>
+
+        <label class="wide">
+          <span>Generated Link</span>
+          <textarea id="share-link" rows="3" readonly></textarea>
+        </label>
+      </div>
+
+      <div class="owner-update-guidance">
+        Opportunity ID dan destination path dikunci.
+        <strong>Source, Campaign, dan Contribution Mode</strong>
+        hanya digunakan untuk prefill dan recruitment attribution.
+      </div>
+
+      <div class="form-actions">
+        <span id="share-message" class="form-message"></span>
+
+        <div class="share-actions">
+          <button id="copy-share-button" class="secondary-button" type="button">
+            Copy Link
+          </button>
+          <button id="publish-share-button" class="primary-button" type="button">
+            Publish & Copy
+          </button>
+        </div>
+      </div>
+    </section>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
-  <script src="my-metrics.js?v=5c4d3-1"></script>
+  <script src="my-metrics.js?v=5c4d4-1"></script>
 </body>
 </html>
