@@ -693,3 +693,20 @@ textarea:focus{
 .skill-manage-row select{min-height:34px;font-size:10px}
 .skills-family-count{margin-left:4px;color:var(--muted);font-size:9px;font-weight:800}
 @media(max-width:650px){.skills-toolbar{grid-template-columns:1fr}.skill-manage-row{grid-template-columns:1fr}}
+
+
+/* Phase 5C.4D.2 cache/action hotfix */
+.metric-actions [data-manage-skills]{
+  display:inline-flex !important;
+  align-items:center;
+  justify-content:center;
+  visibility:visible !important;
+  opacity:1 !important;
+  min-width:112px
+}
+
+.metric-actions [data-update-progress]{
+  display:inline-flex !important;
+  align-items:center;
+  justify-content:center
+}
