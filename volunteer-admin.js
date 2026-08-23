@@ -1049,22 +1049,29 @@ function renderApplicationList() {
       }
 
       ${row.application_status === "pending"
-        ? `
-          <div class="application-actions">
-            <button class="reject-button"
-                    type="button"
-                    data-review="${row.application_id}"
-                    data-decision="rejected">
-              Reject
-            </button>
-            <button class="primary-button"
-                    type="button"
-                    data-review="${row.application_id}"
-                    data-decision="approved">
-              Approve & Assign
-            </button>
-          </div>
-        `
+        ? state.profile?.role === "admin"
+          ? `
+            <div class="application-actions">
+              <button class="reject-button"
+                      type="button"
+                      data-review="${row.application_id}"
+                      data-decision="rejected">
+                Reject — Admin Override
+              </button>
+              <button class="primary-button"
+                      type="button"
+                      data-review="${row.application_id}"
+                      data-decision="approved">
+                Approve — Admin Override
+              </button>
+            </div>
+          `
+          : `
+            <div class="application-project">
+              Final approval dilakukan oleh Primary Metric Owner.
+              Editor dapat memonitor application tetapi tidak mengambil keputusan final.
+            </div>
+          `
         : ""
       }
     </article>

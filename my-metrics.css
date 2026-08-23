@@ -766,3 +766,26 @@ textarea:focus{
 .metric-actions [data-share-opportunity]{display:inline-flex!important;align-items:center;justify-content:center;min-width:122px}
 .metric-actions [data-share-opportunity][disabled]{opacity:.45;cursor:not-allowed}
 @media(max-width:580px){.share-actions{width:100%;flex-direction:column}.share-actions button{width:100%}}
+
+.applications-modal-card{width:min(980px,100%)}
+.application-review-card{width:min(650px,100%)}
+.applications-toolbar{display:flex;justify-content:space-between;align-items:end;gap:12px;margin-bottom:12px}
+.applications-toolbar label{width:min(260px,100%)}
+.applications-list{display:grid;gap:9px;max-height:620px;overflow:auto}
+.owner-application-card{padding:14px;border:1px solid var(--line);border-radius:11px;background:#fff}
+.owner-application-top{display:flex;justify-content:space-between;gap:14px}
+.owner-application-top h3{margin:0 0 2px;font-size:15px}
+.owner-application-email{margin:0;color:var(--muted);font-size:10px}
+.owner-application-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.owner-application-section strong{display:block;margin-bottom:5px;color:#526170;font-size:9px;text-transform:uppercase}
+.owner-application-section p{margin:0;font-size:11px}
+.owner-application-actions{display:flex;justify-content:flex-end;gap:7px;margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+.owner-application-actions .reject-button{min-height:36px;padding:0 11px;border:1px solid #E6C8C8;border-radius:8px;background:#fff;color:#B00000;font-weight:850}
+.metric-actions [data-review-applications]{display:inline-flex!important;align-items:center;justify-content:center;min-width:135px}
+.application-count-badge{display:inline-flex;align-items:center;justify-content:center;min-width:19px;height:19px;margin-left:5px;padding:0 5px;border-radius:999px;background:rgba(13,69,180,.10);color:var(--accent2);font-size:9px;font-weight:900}
+.supporting-owner-note{margin-top:12px;padding:9px 10px;border:1px solid #DCE3EA;border-radius:9px;background:#F7F9FC;color:var(--muted);font-size:10px}
+@media(max-width:680px){
+  .applications-toolbar,.owner-application-top,.owner-application-actions{align-items:stretch;flex-direction:column}
+  .owner-application-grid{grid-template-columns:1fr}
+  .applications-toolbar label{width:100%}
+}

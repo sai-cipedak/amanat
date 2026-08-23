@@ -16,7 +16,11 @@ const state = {
   updateHistory: [],
   skillCatalog: [],
   opportunityDetail: null,
-  shareMetricId: null
+  shareMetricId: null,
+  applicationsMetricId: null,
+  applications: [],
+  reviewApplicationId: null,
+  reviewDecision: null
 };
 
 const $ = id => document.getElementById(id);
@@ -97,7 +101,28 @@ const els = {
   shareLink: $("share-link"),
   shareMessage: $("share-message"),
   copyShareButton: $("copy-share-button"),
-  publishShareButton: $("publish-share-button")
+  publishShareButton: $("publish-share-button"),
+
+  applicationsModal: $("applications-modal"),
+  applicationsModalClose: $("applications-modal-close"),
+  applicationsModalTitle: $("applications-modal-title"),
+  applicationsModalContext: $("applications-modal-context"),
+  applicationsStatusFilter: $("applications-status-filter"),
+  applicationsCount: $("applications-count"),
+  applicationsList: $("applications-list"),
+
+  applicationReviewModal: $("application-review-modal"),
+  applicationReviewClose: $("application-review-close"),
+  applicationReviewEyebrow: $("application-review-eyebrow"),
+  applicationReviewTitle: $("application-review-title"),
+  applicationReviewContext: $("application-review-context"),
+  applicationReviewForm: $("application-review-form"),
+  applicationApprovalFields: $("application-approval-fields"),
+  applicationReviewMode: $("application-review-mode"),
+  applicationReviewHours: $("application-review-hours"),
+  applicationReviewNote: $("application-review-note"),
+  applicationReviewMessage: $("application-review-message"),
+  applicationReviewSubmit: $("application-review-submit")
 };
 
 function esc(value) {
@@ -900,6 +925,367 @@ async function publishAndCopyOwnerOpportunity(){
   );
 }
 
+
+function applicationsMetricRow(){
+  return state.rows.find(
+    row=>row.metric_id===state.applicationsMetricId
+  )||null;
+}
+
+function currentApplication(){
+  return state.applications.find(
+    app=>Number(app.application_id)===Number(state.reviewApplicationId)
+  )||null;
+}
+
+function setApplicationReviewMessage(text,type=""){
+  els.applicationReviewMessage.textContent=text||"";
+  els.applicationReviewMessage.className=
+    `form-message ${type}`.trim();
+}
+
+async function loadMetricApplications(metricId){
+  const {data,error}=await myMetricsSupabase.rpc(
+    "get_my_metric_applications",
+    {p_metric_id:metricId}
+  );
+
+  if(error)throw error;
+
+  state.applications=data||[];
+  renderApplications();
+}
+
+function applicationSkillTags(skills){
+  if(!Array.isArray(skills)||!skills.length){
+    return `<span class="muted">No saved skills</span>`;
+  }
+
+  return skills.map(skill=>`
+    <span class="tag">${esc(skill.skill_name)}</span>
+  `).join("");
+}
+
+function applicationModeTags(modes){
+  if(!Array.isArray(modes)||!modes.length){
+    return `<span class="muted">No preference</span>`;
+  }
+
+  return modes.map(mode=>`
+    <span class="tag">${esc(MODE_LABELS[mode]||mode)}</span>
+  `).join("");
+}
+
+function filteredApplications(){
+  const status=els.applicationsStatusFilter.value;
+
+  return state.applications.filter(app=>
+    !status||app.application_status===status
+  );
+}
+
+function renderApplications(){
+  const row=applicationsMetricRow();
+  const apps=filteredApplications();
+
+  els.applicationsCount.textContent=apps.length;
+
+  if(!apps.length){
+    els.applicationsList.innerHTML=`
+      <div class="empty-owner-state">
+        Tidak ada application untuk status ini.
+      </div>
+    `;
+    return;
+  }
+
+  const canFinalApprove=
+    row?.owner_role==="primary_owner";
+
+  els.applicationsList.innerHTML=apps.map(app=>`
+    <article class="owner-application-card">
+      <div class="owner-application-top">
+        <div>
+          <h3>${esc(app.volunteer_name||app.volunteer_email)}</h3>
+          <p class="owner-application-email">
+            ${esc(app.volunteer_email)}
+          </p>
+        </div>
+
+        <div class="badge-row">
+          <span class="badge ${esc(app.application_status)}">
+            ${esc(app.application_status)}
+          </span>
+
+          ${
+            app.application_source
+              ? `<span class="badge">${esc(app.application_source)}</span>`
+              : ""
+          }
+
+          ${
+            app.campaign
+              ? `<span class="badge">${esc(app.campaign)}</span>`
+              : ""
+          }
+        </div>
+      </div>
+
+      <div class="owner-application-grid">
+        <div class="owner-application-section">
+          <strong>Applied As</strong>
+          <p>
+            ${esc(MODE_LABELS[app.contribution_mode]||app.contribution_mode)}
+            · ${esc(app.offered_hours_month)} h/month
+          </p>
+        </div>
+
+        <div class="owner-application-section">
+          <strong>Profile Capacity</strong>
+          <p>
+            ${esc(app.available_hours_month??"—")} h/month
+            ${
+              app.current_organization
+                ? ` · ${esc(app.current_organization)}`
+                : ""
+            }
+          </p>
+        </div>
+
+        <div class="owner-application-section">
+          <strong>Background</strong>
+          <p>${esc(app.professional_background||"—")}</p>
+        </div>
+
+        <div class="owner-application-section">
+          <strong>Motivation</strong>
+          <p>${esc(app.motivation||"—")}</p>
+        </div>
+
+        <div class="owner-application-section">
+          <strong>Skills</strong>
+          <div class="tag-row">
+            ${applicationSkillTags(app.volunteer_skills)}
+          </div>
+        </div>
+
+        <div class="owner-application-section">
+          <strong>Preferred Modes</strong>
+          <div class="tag-row">
+            ${applicationModeTags(app.volunteer_modes)}
+          </div>
+        </div>
+      </div>
+
+      ${
+        app.review_note
+          ? `<div class="owner-update-guidance">
+               <strong>Review:</strong>
+               ${esc(app.review_note)}
+               ${
+                 app.reviewed_by
+                   ? `<br><small>${esc(app.reviewed_by)}</small>`
+                   : ""
+               }
+             </div>`
+          : ""
+      }
+
+      ${
+        app.application_status==="pending"
+          ? canFinalApprove
+            ? `
+              <div class="owner-application-actions">
+                <button class="reject-button"
+                        type="button"
+                        data-owner-review="${app.application_id}"
+                        data-decision="rejected">
+                  Reject
+                </button>
+
+                <button class="primary-button"
+                        type="button"
+                        data-owner-review="${app.application_id}"
+                        data-decision="approved">
+                  Approve & Assign
+                </button>
+              </div>
+            `
+            : `
+              <div class="supporting-owner-note">
+                Supporting Owner dapat melihat applicant,
+                tetapi keputusan final dilakukan oleh Primary Owner.
+              </div>
+            `
+          : ""
+      }
+    </article>
+  `).join("");
+
+  els.applicationsList
+    .querySelectorAll("[data-owner-review]")
+    .forEach(button=>{
+      button.addEventListener("click",()=>{
+        openApplicationReview(
+          Number(button.dataset.ownerReview),
+          button.dataset.decision
+        );
+      });
+    });
+}
+
+async function openApplicationsModal(metricId){
+  const row=state.rows.find(
+    item=>item.metric_id===metricId
+  );
+
+  if(!row)return;
+
+  state.applicationsMetricId=metricId;
+  state.applications=[];
+
+  els.applicationsModalTitle.textContent=
+    row.owner_role==="primary_owner"
+      ? "Review Applicants"
+      : "Volunteer Applicants";
+
+  els.applicationsModalContext.innerHTML=`
+    <strong>${esc(row.kpi_id)} · ${esc(row.kpi_title)}</strong><br>
+    ${esc(row.metric_id)} · ${esc(row.metric_name)}<br>
+    Ownership:
+    <strong>${esc(ownerRoleLabel(row.owner_role))}</strong>
+  `;
+
+  els.applicationsStatusFilter.value="pending";
+  els.applicationsList.innerHTML=`
+    <div class="empty-owner-state">
+      Memuat applications…
+    </div>
+  `;
+
+  els.applicationsModal.hidden=false;
+
+  await loadMetricApplications(metricId);
+}
+
+function openApplicationReview(applicationId,decision){
+  const app=state.applications.find(
+    item=>Number(item.application_id)===Number(applicationId)
+  );
+
+  const row=applicationsMetricRow();
+
+  if(!app||!row)return;
+
+  if(row.owner_role!=="primary_owner"){
+    window.alert(
+      "Only the Primary Metric Owner can make the final decision."
+    );
+    return;
+  }
+
+  state.reviewApplicationId=applicationId;
+  state.reviewDecision=decision;
+
+  const approve=decision==="approved";
+
+  els.applicationReviewEyebrow.textContent=
+    approve?"APPROVE & ASSIGN":"REJECT APPLICATION";
+
+  els.applicationReviewTitle.textContent=
+    app.volunteer_name||app.volunteer_email;
+
+  els.applicationReviewContext.innerHTML=`
+    <strong>${esc(row.kpi_id)} · ${esc(row.metric_name)}</strong><br>
+    Applicant offered:
+    ${esc(MODE_LABELS[app.contribution_mode]||app.contribution_mode)}
+    · ${esc(app.offered_hours_month)} h/month
+  `;
+
+  els.applicationApprovalFields.hidden=!approve;
+
+  const allowed=Array.isArray(app.allowed_modes)
+    ? app.allowed_modes
+    : [];
+
+  els.applicationReviewMode.innerHTML=
+    allowed.map(mode=>`
+      <option value="${esc(mode)}">
+        ${esc(MODE_LABELS[mode]||mode)}
+      </option>
+    `).join("");
+
+  if(allowed.includes(app.contribution_mode)){
+    els.applicationReviewMode.value=app.contribution_mode;
+  }
+
+  els.applicationReviewHours.value=
+    app.offered_hours_month||"";
+
+  els.applicationReviewNote.value="";
+
+  els.applicationReviewSubmit.textContent=
+    approve?"Approve & Assign":"Reject Application";
+
+  setApplicationReviewMessage("");
+  els.applicationReviewModal.hidden=false;
+}
+
+async function submitApplicationReview(){
+  const app=currentApplication();
+  const row=applicationsMetricRow();
+
+  if(!app||!row){
+    throw new Error("Application tidak ditemukan.");
+  }
+
+  if(row.owner_role!=="primary_owner"){
+    throw new Error(
+      "Only the Primary Metric Owner can make the final decision."
+    );
+  }
+
+  const approve=state.reviewDecision==="approved";
+
+  if(
+    approve &&
+    (!els.applicationReviewMode.value ||
+     Number(els.applicationReviewHours.value)<=0)
+  ){
+    throw new Error(
+      "Contribution mode dan committed hours wajib diisi."
+    );
+  }
+
+  const {error}=await myMetricsSupabase.rpc(
+    "review_volunteer_application",
+    {
+      p_application_id:app.application_id,
+      p_decision:state.reviewDecision,
+      p_contribution_mode:
+        approve?els.applicationReviewMode.value:null,
+      p_committed_hours:
+        approve?Number(els.applicationReviewHours.value):null,
+      p_review_note:
+        els.applicationReviewNote.value.trim()||null
+    }
+  );
+
+  if(error)throw error;
+
+  els.applicationReviewModal.hidden=true;
+  state.reviewApplicationId=null;
+  state.reviewDecision=null;
+
+  await Promise.all([
+    loadMetricApplications(row.metric_id),
+    loadWorkspace()
+  ]);
+
+  renderSummary();
+  renderRows();
+}
+
 function renderRows() {
   const rows = filteredRows();
 
@@ -1069,6 +1455,23 @@ function renderRows() {
 
           <button class="secondary-button"
                   type="button"
+                  data-review-applications="${esc(row.metric_id)}">
+            ${
+              row.owner_role === "primary_owner"
+                ? "Review Applicants"
+                : "View Applicants"
+            }
+            ${
+              Number(row.pending_applications||0)>0
+                ? `<span class="application-count-badge">
+                     ${Number(row.pending_applications||0)}
+                   </span>`
+                : ""
+            }
+          </button>
+
+          <button class="secondary-button"
+                  type="button"
                   data-share-opportunity="${esc(row.metric_id)}"
                   ${
                     !row.opportunity_id ||
@@ -1144,6 +1547,21 @@ function renderRows() {
       button.addEventListener("click", () => {
         if(button.disabled)return;
         openOwnerShareModal(button.dataset.shareOpportunity);
+      });
+    });
+
+  els.metricList
+    .querySelectorAll("[data-review-applications]")
+    .forEach(button => {
+      button.addEventListener("click", async () => {
+        try{
+          await openApplicationsModal(
+            button.dataset.reviewApplications
+          );
+        }catch(error){
+          console.error(error);
+          window.alert(error.message);
+        }
       });
     });
 }
@@ -1336,6 +1754,50 @@ els.publishShareButton.addEventListener("click",async()=>{
     setShareMessage(error.message,"error");
   }
 });
+
+
+els.applicationsModalClose.addEventListener("click",()=>{
+  els.applicationsModal.hidden=true;
+});
+
+els.applicationsModal.addEventListener("click",event=>{
+  if(event.target===els.applicationsModal){
+    els.applicationsModal.hidden=true;
+  }
+});
+
+els.applicationsStatusFilter.addEventListener(
+  "change",
+  renderApplications
+);
+
+els.applicationReviewClose.addEventListener("click",()=>{
+  els.applicationReviewModal.hidden=true;
+});
+
+els.applicationReviewModal.addEventListener("click",event=>{
+  if(event.target===els.applicationReviewModal){
+    els.applicationReviewModal.hidden=true;
+  }
+});
+
+els.applicationReviewForm.addEventListener(
+  "submit",
+  async event=>{
+    event.preventDefault();
+
+    try{
+      setApplicationReviewMessage("Processing…");
+      await submitApplicationReview();
+    }catch(error){
+      console.error(error);
+      setApplicationReviewMessage(
+        error.message,
+        "error"
+      );
+    }
+  }
+);
 
 myMetricsSupabase.auth.onAuthStateChange(
   async (_event, session) => {

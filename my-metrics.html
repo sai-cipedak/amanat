@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="robots" content="noindex,nofollow" />
   <title>My Metrics · SAI Cipedak</title>
-  <link rel="stylesheet" href="my-metrics.css?v=5c4d4-1" />
-  <link rel="stylesheet" href="sai-theme.css?v=5c4d4-1" />
+  <link rel="stylesheet" href="my-metrics.css?v=5c4e-1" />
+  <link rel="stylesheet" href="sai-theme.css?v=5c4e-1" />
 </head>
 
 <body>
@@ -45,7 +45,7 @@
     </div>
   </header>
 
-  <main class="shell main-shell" data-build="5C.4D.4-1">
+  <main class="shell main-shell" data-build="5C.4E-1">
 
     <section id="login-panel" class="auth-card">
       <p class="eyebrow">METRIC OWNER ACCESS</p>
@@ -478,8 +478,87 @@
     </section>
   </div>
 
+
+  <div id="applications-modal" class="modal-backdrop" hidden>
+    <section class="modal-card applications-modal-card">
+      <div class="modal-heading">
+        <div>
+          <p class="eyebrow">VOLUNTEER APPLICATIONS</p>
+          <h2 id="applications-modal-title">Review Applicants</h2>
+        </div>
+        <button id="applications-modal-close" class="close-button" type="button">×</button>
+      </div>
+      <div id="applications-modal-context" class="review-context"></div>
+
+      <div class="applications-toolbar">
+        <label>
+          <span>Status</span>
+          <select id="applications-status-filter">
+            <option value="pending">Pending</option>
+            <option value="">Semua status</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+            <option value="withdrawn">Withdrawn</option>
+          </select>
+        </label>
+        <span id="applications-count" class="badge">0</span>
+      </div>
+
+      <div id="applications-list" class="applications-list"></div>
+    </section>
+  </div>
+
+  <div id="application-review-modal" class="modal-backdrop" hidden>
+    <section class="modal-card application-review-card">
+      <div class="modal-heading">
+        <div>
+          <p id="application-review-eyebrow" class="eyebrow">APPLICATION REVIEW</p>
+          <h2 id="application-review-title">—</h2>
+        </div>
+        <button id="application-review-close" class="close-button" type="button">×</button>
+      </div>
+
+      <div id="application-review-context" class="review-context"></div>
+
+      <form id="application-review-form">
+        <div id="application-approval-fields" class="form-grid">
+          <label>
+            <span>Assigned Contribution Mode *</span>
+            <select id="application-review-mode"></select>
+          </label>
+
+          <label>
+            <span>Committed Hours / Month *</span>
+            <input id="application-review-hours"
+                   type="number"
+                   min="0.5"
+                   step="0.5" />
+          </label>
+        </div>
+
+        <label>
+          <span>Review / Assignment Note</span>
+          <textarea id="application-review-note"
+                    rows="4"
+                    placeholder="Catatan keputusan atau arahan kontribusi."></textarea>
+        </label>
+
+        <div class="owner-update-guidance">
+          Final approval dilakukan oleh <strong>Primary Metric Owner</strong>.
+        </div>
+
+        <div class="form-actions">
+          <span id="application-review-message" class="form-message"></span>
+          <button id="application-review-submit" class="primary-button" type="submit">
+            Confirm
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
-  <script src="my-metrics.js?v=5c4d4-1"></script>
+  <script src="my-metrics.js?v=5c4e-1"></script>
 </body>
 </html>
