@@ -9,7 +9,11 @@ const state = {
   kpis: [],
   updates: [],
   allUpdates: [],
+  reviewQueueRows: [],
   adminUsers: [],
+  myClusterLeads: [],
+  adminClusterLeads: [],
+  selectedClusterLeadCluster: null,
   selectedKpi: null,
   selectedMetric: null
 };
@@ -60,8 +64,6 @@ const els = {
   updateDate: document.getElementById("update-date"),
   updateActual: document.getElementById("update-actual"),
   updateProgress: document.getElementById("update-progress"),
-  kpiAggregateField: document.getElementById("kpi-aggregate-field"),
-  kpiAggregateProgress: document.getElementById("kpi-aggregate-progress"),
   updateEvidence: document.getElementById("update-evidence"),
   updateNote: document.getElementById("update-note"),
   updateMessage: document.getElementById("update-message"),
@@ -76,6 +78,25 @@ const els = {
   reviewSearch: document.getElementById("review-search"),
   reviewClusterFilter: document.getElementById("review-cluster-filter"),
   reviewList: document.getElementById("review-list"),
+  reviewScopeNote: document.getElementById("review-scope-note"),
+  manualUpdatePanel: document.getElementById("manual-update-panel"),
+
+  clusterGovernancePanel: document.getElementById("cluster-governance-panel"),
+  clusterLeadCount: document.getElementById("cluster-lead-count"),
+  clusterLeadList: document.getElementById("cluster-lead-list"),
+
+  clusterLeadModal: document.getElementById("cluster-lead-modal"),
+  clusterLeadModalClose: document.getElementById("cluster-lead-modal-close"),
+  clusterLeadModalTitle: document.getElementById("cluster-lead-modal-title"),
+  clusterLeadModalContext: document.getElementById("cluster-lead-modal-context"),
+  clusterLeadForm: document.getElementById("cluster-lead-form"),
+  clusterLeadAssignmentId: document.getElementById("cluster-lead-assignment-id"),
+  clusterLeadCluster: document.getElementById("cluster-lead-cluster"),
+  clusterLeadName: document.getElementById("cluster-lead-name"),
+  clusterLeadEmail: document.getElementById("cluster-lead-email"),
+  clusterLeadMessage: document.getElementById("cluster-lead-message"),
+  endClusterLeadButton: document.getElementById("end-cluster-lead-button"),
+
   userManagementPanel: document.getElementById("user-management-panel"),
   activeUserCount: document.getElementById("active-user-count"),
   addUserForm: document.getElementById("add-user-form"),
@@ -162,46 +183,6 @@ function metricProgress(metric) {
   }
 }
 
-
-function kpiAggregateProgress(kpi) {
-  const metrics = (kpi?.kpi_metrics || []).filter(
-    metric => metric.is_public !== false
-  );
-
-  if (!metrics.length) return null;
-
-  const progressValues = metrics.map(metric => metricProgress(metric));
-
-  if (metrics.length === 1) {
-    return progressValues[0];
-  }
-
-  return progressValues.reduce(
-    (sum, progress) => sum + (progress ?? 0),
-    0
-  ) / metrics.length;
-}
-
-function renderKpiAggregateProgress() {
-  const kpi = state.selectedKpi;
-  const metrics = (kpi?.kpi_metrics || []).filter(
-    metric => metric.is_public !== false
-  );
-
-  const isMultiMetric = metrics.length > 1;
-
-  els.kpiAggregateField.hidden = !isMultiMetric;
-
-  if (!isMultiMetric) {
-    els.kpiAggregateProgress.value = "";
-    return;
-  }
-
-  const aggregate = kpiAggregateProgress(kpi);
-  els.kpiAggregateProgress.value =
-    aggregate === null ? "0" : Number(aggregate.toFixed(2));
-}
-
 async function signInWithGoogle() {
   const redirectTo = `${window.location.origin}${window.location.pathname}`;
   const { error } = await adminSupabase.auth.signInWithOAuth({
@@ -213,13 +194,74 @@ async function signInWithGoogle() {
 
 async function resolveProfile(session) {
   if (!session?.user?.email) return null;
-  const { data, error } = await adminSupabase
-    .from("admin_users")
-    .select("email, display_name, role, is_active")
-    .eq("email", session.user.email)
-    .maybeSingle();
+
+  const { error: claimError } = await adminSupabase.rpc(
+    "claim_my_cluster_lead_assignments"
+  );
+
+  if (claimError) throw claimError;
+
+  const { data, error } = await adminSupabase.rpc(
+    "get_my_kpi_admin_profile"
+  );
+
   if (error) throw error;
-  return data;
+
+  return Array.isArray(data) && data.length
+    ? data[0]
+    : null;
+}
+
+
+async function loadMyClusterLeadAssignments() {
+  const { data, error } = await adminSupabase.rpc(
+    "get_my_cluster_lead_assignments"
+  );
+
+  if (error) throw error;
+
+  state.myClusterLeads = data || [];
+}
+
+async function loadReviewQueue() {
+  if (!roleCanReview()) {
+    state.reviewQueueRows = [];
+    return;
+  }
+
+  const { data, error } = await adminSupabase.rpc(
+    "get_metric_update_review_queue"
+  );
+
+  if (error) throw error;
+
+  state.reviewQueueRows = data || [];
+}
+
+async function loadAdminClusterLeads() {
+  if (state.profile?.role !== "admin") {
+    state.adminClusterLeads = [];
+    els.clusterGovernancePanel.hidden = true;
+    return;
+  }
+
+  const { data, error } = await adminSupabase.rpc(
+    "get_admin_cluster_leads"
+  );
+
+  if (error) throw error;
+
+  state.adminClusterLeads = data || [];
+  els.clusterGovernancePanel.hidden = false;
+  renderClusterGovernance();
+}
+
+function reviewerClusters() {
+  return state.myClusterLeads
+    .filter(row =>
+      ["pending","active"].includes(row.assignment_status)
+    )
+    .map(row => row.cluster);
 }
 
 async function loadReferenceData() {
@@ -405,9 +447,18 @@ function resetUpdateForm() {
 }
 
 function populateReviewClusters() {
-  const clusters = [...new Set(
-    state.kpis.map(k => k.mandates?.cluster).filter(Boolean)
+  const allClusters = [...new Set(
+    state.kpis
+      .map(k => k.mandates?.cluster)
+      .filter(Boolean)
   )].sort((a, b) => a.localeCompare(b, "id"));
+
+  const clusters =
+    state.profile?.role === "reviewer"
+      ? allClusters.filter(cluster =>
+          reviewerClusters().includes(cluster)
+        )
+      : allClusters;
 
   els.reviewClusterFilter.innerHTML =
     `<option value="">Semua cluster</option>`;
@@ -418,7 +469,56 @@ function populateReviewClusters() {
     option.textContent = cluster;
     els.reviewClusterFilter.appendChild(option);
   });
+
+  renderReviewScopeNote();
 }
+
+function renderReviewScopeNote() {
+  if (!roleCanReview()) {
+    els.reviewScopeNote.hidden = true;
+    return;
+  }
+
+  els.reviewScopeNote.hidden = false;
+
+  if (state.profile?.role === "admin") {
+    const escalated = state.reviewQueueRows.filter(
+      row =>
+        row.review_route === "admin_escalation" ||
+        row.review_route === "admin_no_cluster_lead"
+    ).length;
+
+    els.reviewScopeNote.className =
+      `review-scope-note ${escalated ? "escalation" : ""}`.trim();
+
+    els.reviewScopeNote.innerHTML = `
+      <strong>Admin review scope: Global.</strong>
+      ${
+        escalated
+          ? ` ${escalated} draft membutuhkan Admin review karena
+              self-review Cluster Lead atau belum ada Cluster Lead.`
+          : " Tidak ada draft yang sedang dieskalasikan."
+      }
+    `;
+    return;
+  }
+
+  const clusters = reviewerClusters();
+
+  els.reviewScopeNote.className = "review-scope-note";
+  els.reviewScopeNote.innerHTML = `
+    <strong>Reviewer scope:</strong>
+    ${
+      clusters.length
+        ? clusters.map(escapeHtml).join(", ")
+        : "Belum ada Cluster Lead assignment."
+    }
+    <br>
+    Draft yang Anda submit sendiri tidak dapat Anda review dan otomatis
+    membutuhkan Admin review.
+  `;
+}
+
 
 function queueCardHtml(update, mode) {
   const context = findMetricContext(update.metric_id);
@@ -433,20 +533,60 @@ function queueCardHtml(update, mode) {
     update.verification_status === "draft" &&
     update.created_by === state.session?.user?.id;
 
-  const editButton = mode === "mine" && ownDraft
-    ? `<button class="small-button edit-button" type="button"
-         data-edit="${update.id}">Edit Draft</button>`
-    : "";
+  const editButton =
+    mode === "mine" &&
+    ownDraft &&
+    state.profile?.role !== "reviewer"
+      ? `<button class="small-button edit-button" type="button"
+           data-edit="${update.id}">Edit Draft</button>`
+      : "";
 
-  const reviewButtons = mode === "review" && roleCanReview()
+  const canReview =
+    mode === "review" &&
+    roleCanReview() &&
+    Boolean(update.can_current_user_review);
+
+  const reviewButtons = canReview
     ? `<button class="small-button verify-button" type="button"
          data-review="verified" data-id="${update.id}">Verify</button>
        <button class="small-button reject-button" type="button"
          data-review="rejected" data-id="${update.id}">Reject</button>`
     : "";
 
+  let routeLabel = "";
+  let routeClass = "cluster";
+
+  if (mode === "review") {
+    if (update.review_route === "admin_escalation") {
+      routeLabel = update.is_self_submitted
+        ? "Submitted by you · Admin review required"
+        : "Escalated to Admin · Cluster Lead is submitter";
+      routeClass = update.is_self_submitted ? "self" : "admin";
+    } else if (update.review_route === "admin_no_cluster_lead") {
+      routeLabel = "Admin review required · No Cluster Lead assigned";
+      routeClass = "admin";
+    } else {
+      routeLabel = update.cluster_lead_name
+        ? `Cluster Lead review · ${update.cluster_lead_name}`
+        : "Cluster Lead review";
+      routeClass = "cluster";
+    }
+  }
+
+  const routeBadge = routeLabel
+    ? `<span class="review-route-badge ${routeClass}">
+         ${escapeHtml(routeLabel)}
+       </span>`
+    : "";
+
+  const cardClass =
+    update.review_route === "admin_escalation" ||
+    update.review_route === "admin_no_cluster_lead"
+      ? `queue-card ${update.is_self_submitted ? "self-review" : "escalated-review"}`
+      : "queue-card";
+
   return `
-    <article class="queue-card">
+    <article class="${cardClass}">
       <div class="queue-card-main">
         <div class="queue-card-top">
           <div>
@@ -457,6 +597,7 @@ function queueCardHtml(update, mode) {
             <p class="queue-kpi">
               ${escapeHtml(context.kpi.id)} · ${escapeHtml(context.kpi.title)}
             </p>
+            ${routeBadge}
           </div>
 
           <div class="queue-value">
@@ -554,9 +695,7 @@ function renderReviewQueue() {
   const q = (els.reviewSearch.value || "").trim().toLowerCase();
   const cluster = els.reviewClusterFilter.value || "";
 
-  let rows = state.allUpdates.filter(
-    update => update.verification_status === "draft"
-  );
+  let rows = [...state.reviewQueueRows];
 
   rows = rows.filter(update => {
     const context = findMetricContext(update.metric_id);
@@ -569,7 +708,9 @@ function renderReviewQueue() {
       context.metric.metric_name,
       context.kpi.id,
       context.kpi.title,
-      context.cluster
+      context.cluster,
+      update.cluster_lead_name,
+      update.review_route
     ].filter(Boolean).join(" ").toLowerCase();
 
     return (
@@ -584,6 +725,7 @@ function renderReviewQueue() {
     : `<div class="queue-empty">Tidak ada draft yang menunggu review.</div>`;
 
   bindQueueActions(els.reviewList);
+  renderReviewScopeNote();
 }
 
 function openMetric(metricId) {
@@ -677,14 +819,20 @@ async function loadAllUpdateCounts() {
   els.verifiedCount.textContent = verified.length;
 
   renderMyDrafts();
-  renderReviewQueue();
 }
 function populateKpiFilters() {
-  const clusters = [...new Set(
+  const allClusters = [...new Set(
     state.kpis
       .map(kpi => kpi.mandates?.cluster)
       .filter(Boolean)
   )].sort((a, b) => a.localeCompare(b, "id"));
+
+  const clusters =
+    state.profile?.role === "reviewer"
+      ? allClusters.filter(cluster =>
+          reviewerClusters().includes(cluster)
+        )
+      : allClusters;
 
   els.kpiClusterFilter.innerHTML =
     `<option value="">Semua cluster</option>`;
@@ -718,7 +866,12 @@ function getFilteredKpis() {
       .join(" ")
       .toLowerCase();
 
+    const reviewerScopeOk =
+      state.profile?.role !== "reviewer" ||
+      reviewerClusters().includes(kpi.mandates?.cluster);
+
     return (
+      reviewerScopeOk &&
       (!query || haystack.includes(query)) &&
       (!cluster || kpi.mandates?.cluster === cluster)
     );
@@ -738,8 +891,15 @@ function renderKpiOptions({ preserveSelection = true } = {}) {
     els.kpiSelect.appendChild(option);
   });
 
+  const availableTotal =
+    state.profile?.role === "reviewer"
+      ? state.kpis.filter(kpi =>
+          reviewerClusters().includes(kpi.mandates?.cluster)
+        ).length
+      : state.kpis.length;
+
   els.kpiFilterCount.textContent =
-    `${filtered.length} dari ${state.kpis.length} KPI ditampilkan`;
+    `${filtered.length} dari ${availableTotal} KPI ditampilkan`;
 
   const canPreserve =
     previousValue &&
@@ -754,8 +914,6 @@ function renderKpiOptions({ preserveSelection = true } = {}) {
     els.metricSelect.disabled = true;
     els.workspace.hidden = true;
     els.kpiFlagControls.hidden = true;
-    els.kpiAggregateField.hidden = true;
-    els.kpiAggregateProgress.value = "";
     resetUpdateForm();
   }
 }
@@ -767,8 +925,15 @@ function clearKpiFinder() {
 }
 
 function populateKpis() {
-  els.totalKpis.textContent = state.kpis.length;
-  els.totalMetrics.textContent = state.kpis.reduce(
+  const visibleKpis =
+    state.profile?.role === "reviewer"
+      ? state.kpis.filter(kpi =>
+          reviewerClusters().includes(kpi.mandates?.cluster)
+        )
+      : state.kpis;
+
+  els.totalKpis.textContent = visibleKpis.length;
+  els.totalMetrics.textContent = visibleKpis.reduce(
     (sum, kpi) => sum + (kpi.kpi_metrics || []).length, 0
   );
 
@@ -792,7 +957,6 @@ function populateMetrics(kpi) {
 
 function renderMetric(metric) {
   renderSelectedKpiFlags();
-  renderKpiAggregateProgress();
 
   if (!metric || !state.selectedKpi) {
     els.workspace.hidden = true;
@@ -872,19 +1036,27 @@ function renderHistory() {
 
     const canEdit =
       update.verification_status === "draft" &&
-      update.created_by === state.session?.user?.id;
+      update.created_by === state.session?.user?.id &&
+      state.profile?.role !== "reviewer";
 
     const editAction = canEdit
       ? `<button class="review-button open-button" type="button"
            data-edit-history="${update.id}">Edit</button>`
       : "";
 
-    const reviewAction = roleCanReview() && update.verification_status === "draft"
-      ? `<button class="review-button verify-button" type="button"
-           data-action="verified" data-id="${update.id}">Verify</button>
-         <button class="review-button reject-button" type="button"
-           data-action="rejected" data-id="${update.id}">Reject</button>`
-      : "";
+    const queueEntry = state.reviewQueueRows.find(
+      row => Number(row.id) === Number(update.id)
+    );
+
+    const reviewAction =
+      roleCanReview() &&
+      update.verification_status === "draft" &&
+      queueEntry?.can_current_user_review
+        ? `<button class="review-button verify-button" type="button"
+             data-action="verified" data-id="${update.id}">Verify</button>
+           <button class="review-button reject-button" type="button"
+             data-action="rejected" data-id="${update.id}">Reject</button>`
+        : "";
 
     const actions = editAction || reviewAction
       ? `<div class="history-actions">${editAction}${reviewAction}</div>`
@@ -971,8 +1143,11 @@ async function submitDraft() {
 
   await Promise.all([
     loadHistory(state.selectedMetric.id),
-    loadAllUpdateCounts()
+    loadAllUpdateCounts(),
+    loadReviewQueue()
   ]);
+
+  renderReviewQueue();
 }
 async function reviewUpdate(id, status) {
   const reviewNote = window.prompt(
@@ -983,13 +1158,14 @@ async function reviewUpdate(id, status) {
 
   if (status === "rejected" && !reviewNote?.trim()) return;
 
-  const { error } = await adminSupabase
-    .from("metric_updates")
-    .update({
-      verification_status: status,
-      review_note: reviewNote?.trim() || null
-    })
-    .eq("id", id);
+  const { error } = await adminSupabase.rpc(
+    "review_metric_update",
+    {
+      p_update_id: id,
+      p_status: status,
+      p_review_note: reviewNote?.trim() || null
+    }
+  );
 
   if (error) {
     window.alert(`Review gagal: ${error.message}`);
@@ -1001,20 +1177,202 @@ async function reviewUpdate(id, status) {
 
   await Promise.all([
     loadReferenceData(),
-    loadAllUpdateCounts()
+    loadAllUpdateCounts(),
+    loadReviewQueue()
   ]);
 
   if (selectedKpiId && selectedMetricId) {
-    state.selectedKpi = state.kpis.find(kpi => kpi.id === selectedKpiId);
-    state.selectedMetric = state.selectedKpi?.kpi_metrics.find(
-      metric => metric.id === selectedMetricId
+    state.selectedKpi = state.kpis.find(
+      kpi => kpi.id === selectedKpiId
     );
+
+    state.selectedMetric =
+      state.selectedKpi?.kpi_metrics.find(
+        metric => metric.id === selectedMetricId
+      );
 
     renderMetric(state.selectedMetric);
     await loadHistory(selectedMetricId);
   }
+
+  renderReviewQueue();
 }
 
+
+
+function setClusterLeadMessage(text, type = "") {
+  setMessage(els.clusterLeadMessage, text, type);
+}
+
+function renderClusterGovernance() {
+  if (state.profile?.role !== "admin") {
+    els.clusterGovernancePanel.hidden = true;
+    return;
+  }
+
+  const assigned = state.adminClusterLeads.filter(
+    row => row.assignment_id
+  ).length;
+
+  els.clusterLeadCount.textContent =
+    `${assigned} / ${state.adminClusterLeads.length}`;
+
+  if (!state.adminClusterLeads.length) {
+    els.clusterLeadList.innerHTML = `
+      <div class="queue-empty">
+        Tidak ada cluster ditemukan di KPI model.
+      </div>
+    `;
+    return;
+  }
+
+  els.clusterLeadList.innerHTML =
+    state.adminClusterLeads.map(row => `
+      <article class="cluster-lead-card">
+        <div class="cluster-lead-card-top">
+          <h3>${escapeHtml(row.cluster)}</h3>
+
+          <span class="status-tag ${row.assignment_status || "not-assigned"}">
+            ${row.assignment_status || "Not Assigned"}
+          </span>
+        </div>
+
+        <div class="cluster-lead-identity">
+          ${
+            row.assignment_id
+              ? `
+                <strong>
+                  ${escapeHtml(row.display_name || row.lead_email)}
+                </strong>
+                <span>${escapeHtml(row.lead_email)}</span>
+              `
+              : `
+                <strong>Belum ada Cluster Lead</strong>
+                <span>Admin perlu melakukan assignment.</span>
+              `
+          }
+        </div>
+
+        <div class="cluster-lead-card-actions">
+          <button class="secondary-button"
+                  type="button"
+                  data-manage-cluster-lead="${escapeHtml(row.cluster)}">
+            Manage
+          </button>
+        </div>
+      </article>
+    `).join("");
+
+  els.clusterLeadList
+    .querySelectorAll("[data-manage-cluster-lead]")
+    .forEach(button => {
+      button.addEventListener("click", () => {
+        openClusterLeadModal(
+          button.dataset.manageClusterLead
+        );
+      });
+    });
+}
+
+function openClusterLeadModal(cluster) {
+  const row = state.adminClusterLeads.find(
+    item => item.cluster === cluster
+  );
+
+  if (!row) return;
+
+  state.selectedClusterLeadCluster = cluster;
+
+  els.clusterLeadModalTitle.textContent =
+    row.assignment_id
+      ? "Change Cluster Lead"
+      : "Assign Cluster Lead";
+
+  els.clusterLeadModalContext.innerHTML = `
+    <strong>${escapeHtml(cluster)}</strong><br>
+    Reviewer authority hanya berlaku untuk metric dalam cluster ini.
+  `;
+
+  els.clusterLeadAssignmentId.value =
+    row.assignment_id || "";
+
+  els.clusterLeadCluster.value = cluster;
+  els.clusterLeadName.value =
+    row.display_name || "";
+
+  els.clusterLeadEmail.value =
+    row.lead_email || "";
+
+  els.endClusterLeadButton.hidden =
+    !row.assignment_id;
+
+  setClusterLeadMessage("");
+  els.clusterLeadModal.hidden = false;
+}
+
+async function saveClusterLead() {
+  const cluster = els.clusterLeadCluster.value;
+  const email = els.clusterLeadEmail.value
+    .trim()
+    .toLowerCase();
+
+  if (!cluster || !email) {
+    throw new Error("Cluster dan email wajib diisi.");
+  }
+
+  const { error } = await adminSupabase.rpc(
+    "assign_cluster_lead",
+    {
+      p_cluster: cluster,
+      p_email: email,
+      p_display_name:
+        els.clusterLeadName.value.trim() || null
+    }
+  );
+
+  if (error) throw error;
+
+  await Promise.all([
+    loadAdminClusterLeads(),
+    loadReviewQueue()
+  ]);
+
+  renderReviewQueue();
+  els.clusterLeadModal.hidden = true;
+}
+
+async function endCurrentClusterLead() {
+  const assignmentId =
+    Number(els.clusterLeadAssignmentId.value);
+
+  if (!assignmentId) return;
+
+  const cluster =
+    state.selectedClusterLeadCluster || "cluster ini";
+
+  if (!window.confirm(
+    `End current Cluster Lead assignment untuk ${cluster}?`
+  )) {
+    return;
+  }
+
+  const { error } = await adminSupabase.rpc(
+    "end_cluster_lead_assignment",
+    {
+      p_assignment_id: assignmentId
+    }
+  );
+
+  if (error) throw error;
+
+  await Promise.all([
+    loadAdminClusterLeads(),
+    loadReviewQueue()
+  ]);
+
+  renderReviewQueue();
+  els.clusterLeadModal.hidden = true;
+}
 
 async function loadAdminUsers() {
   if (state.profile?.role !== "admin") {
@@ -1053,7 +1411,13 @@ function renderAdminUsers() {
       <div class="user-identity"><strong>${escapeHtml(user.display_name || user.email)}${isSelf?`<span class="user-self-tag">YOU</span>`:""}</strong><span>${escapeHtml(user.email)}</span></div>
       <select class="user-role-select" data-user-role="${escapeHtml(user.email)}">
         <option value="editor" ${user.role==="editor"?"selected":""}>Editor</option>
-        <option value="reviewer" ${user.role==="reviewer"?"selected":""}>Reviewer</option>
+        ${
+          user.role==="reviewer"
+            ? `<option value="reviewer" selected disabled>
+                 Reviewer (legacy — use Cluster Lead)
+               </option>`
+            : ""
+        }
         <option value="admin" ${user.role==="admin"?"selected":""}>Admin</option>
       </select>
       <div class="user-actions"><button type="button" class="user-status-button ${user.is_active?"active":"inactive"}" data-user-status="${escapeHtml(user.email)}" data-current-status="${user.is_active?"true":"false"}">${user.is_active?"Active":"Inactive"}</button></div>
@@ -1124,21 +1488,45 @@ async function enterAdmin(session) {
 
     await Promise.all([
       loadReferenceData(),
-      loadAllUpdateCounts()
+      loadAllUpdateCounts(),
+      loadMyClusterLeadAssignments()
     ]);
+
+    await loadReviewQueue();
 
     els.loginPanel.hidden = true;
     els.accessDenied.hidden = true;
     els.adminApp.hidden = false;
     els.sessionControls.hidden = false;
-    els.userName.textContent = profile.display_name || session.user.email;
-    els.userRole.textContent = profile.role;
+    els.userName.textContent =
+      profile.display_name || session.user.email;
+
+    els.userRole.textContent =
+      profile.role === "reviewer"
+        ? "Cluster Lead · Reviewer"
+        : profile.role;
+
     populateKpis();
+
     els.reviewQueuePanel.hidden = !roleCanReview();
+
+    // Cluster Lead/Reviewer reviews only; metric creation/submission
+    // is performed from My Metrics when the same person is an Owner.
+    els.manualUpdatePanel.hidden =
+      profile.role === "reviewer";
+
     renderMyDrafts();
     renderReviewQueue();
-    if (profile.role === "admin") await loadAdminUsers();
-    else els.userManagementPanel.hidden = true;
+
+    if (profile.role === "admin") {
+      await Promise.all([
+        loadAdminUsers(),
+        loadAdminClusterLeads()
+      ]);
+    } else {
+      els.userManagementPanel.hidden = true;
+      els.clusterGovernancePanel.hidden = true;
+    }
   } catch (error) {
     console.error(error);
     window.alert(`Admin console gagal dimuat: ${error.message}`);
@@ -1153,7 +1541,11 @@ async function exitAdmin() {
   state.kpis = [];
   state.updates = [];
   state.allUpdates = [];
+  state.reviewQueueRows = [];
   state.adminUsers = [];
+  state.myClusterLeads = [];
+  state.adminClusterLeads = [];
+  state.selectedClusterLeadCluster = null;
   state.selectedKpi = null;
   state.selectedMetric = null;
 
@@ -1167,6 +1559,39 @@ async function exitAdmin() {
   els.workspace.hidden = true;
   els.loginPanel.hidden = false;
 }
+
+
+els.clusterLeadModalClose.addEventListener("click", () => {
+  els.clusterLeadModal.hidden = true;
+});
+
+els.clusterLeadModal.addEventListener("click", event => {
+  if (event.target === els.clusterLeadModal) {
+    els.clusterLeadModal.hidden = true;
+  }
+});
+
+els.clusterLeadForm.addEventListener("submit", async event => {
+  event.preventDefault();
+
+  try {
+    setClusterLeadMessage("Saving…");
+    await saveClusterLead();
+  } catch (error) {
+    console.error(error);
+    setClusterLeadMessage(error.message, "error");
+  }
+});
+
+els.endClusterLeadButton.addEventListener("click", async () => {
+  try {
+    setClusterLeadMessage("Ending assignment…");
+    await endCurrentClusterLead();
+  } catch (error) {
+    console.error(error);
+    setClusterLeadMessage(error.message, "error");
+  }
+});
 
 els.googleLoginButton.addEventListener("click", async () => {
   setMessage(els.loginMessage, "Redirecting to Google…");
@@ -1210,7 +1635,6 @@ els.kpiSelect.addEventListener("change", () => {
   resetUpdateForm();
   els.workspace.hidden = true;
   renderSelectedKpiFlags();
-  renderKpiAggregateProgress();
 });
 
 els.metricSelect.addEventListener("change", async () => {
@@ -1226,6 +1650,15 @@ els.metricSelect.addEventListener("change", async () => {
 
 els.updateForm.addEventListener("submit", async event => {
   event.preventDefault();
+
+  if (state.profile?.role === "reviewer") {
+    setMessage(
+      els.updateMessage,
+      "Cluster Lead submits metric progress through My Metrics when assigned as Metric Owner.",
+      "error"
+    );
+    return;
+  }
 
   const editing = Boolean(els.editingUpdateId.value);
   setMessage(els.updateMessage, editing ? "Saving…" : "Submitting…");

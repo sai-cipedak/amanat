@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="robots" content="noindex,nofollow" />
   <title>Admin · SAI Cipedak KPI Tracker</title>
-  <link rel="stylesheet" href="admin.css" />
+  <link rel="stylesheet" href="admin.css?v=v1-cluster-review-1" />
   <link rel="stylesheet" href="sai-theme.css?v=5d-hotfix-1" />
 </head>
 <body>
@@ -62,10 +62,10 @@
 
     <section id="access-denied" class="auth-card error-card" hidden>
       <p class="eyebrow">ACCESS DENIED</p>
-      <h2>Email ini belum terdaftar sebagai admin</h2>
+      <h2>Akun ini belum memiliki akses KPI Admin</h2>
       <p>
-        Akun berhasil login ke Supabase, tetapi email belum ada di
-        <code>admin_users</code> atau sedang nonaktif.
+        Akses KPI Admin diberikan kepada Admin, Editor, atau Cluster Lead
+        yang sedang aktif sebagai scoped Reviewer.
       </p>
       <p class="muted">Session login akan ditutup otomatis.</p>
     </section>
@@ -194,7 +194,7 @@
             </div>
           </section>
 
-          <section class="panel">
+          <section id="manual-update-panel" class="panel">
             <div class="section-heading compact">
               <div>
                 <p class="eyebrow">NEW OBSERVATION</p>
@@ -202,6 +202,11 @@
               </div>
               <span id="form-mode-tag" class="status-tag">New Draft</span>
             </div>
+
+            <p class="muted admin-role-guidance">
+              Editor/Admin dapat membuat draft dari Admin Console.
+              Metric Owner menggunakan My Metrics. Cluster Lead fokus pada review.
+            </p>
 
             <form id="update-form" class="update-form">
               <input id="editing-update-id" type="hidden" />
@@ -299,6 +304,10 @@
           <span id="review-queue-count" class="count-badge">0</span>
         </div>
 
+        <div id="review-scope-note"
+             class="review-scope-note"
+             hidden></div>
+
         <div class="queue-toolbar">
           <label>
             <span>Search queue</span>
@@ -317,6 +326,28 @@
         <div id="review-list" class="queue-list"></div>
       </section>
 
+      <section id="cluster-governance-panel"
+               class="panel phase4b-panel"
+               hidden>
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">CLUSTER GOVERNANCE</p>
+            <h2>Cluster Leads</h2>
+          </div>
+          <span id="cluster-lead-count"
+                class="count-badge">0 / 6</span>
+        </div>
+
+        <p class="muted">
+          Cluster Lead adalah scoped Reviewer. Hanya Admin yang dapat
+          Assign, Change, atau End assignment. Satu cluster memiliki
+          maksimal satu Cluster Lead aktif.
+        </p>
+
+        <div id="cluster-lead-list"
+             class="cluster-lead-grid"></div>
+      </section>
+
       <section id="user-management-panel" class="panel phase4b-panel" hidden>
         <div class="section-heading">
           <div>
@@ -329,7 +360,10 @@
         <div class="user-management-grid">
           <div class="user-form-card">
             <h3>Add User</h3>
-            <p class="muted">Daftarkan email Google dan role. Tidak perlu invite atau password.</p>
+            <p class="muted">
+              Daftarkan Editor atau Admin. Reviewer tidak ditambahkan dari sini;
+              reviewer authority berasal dari assignment Cluster Lead.
+            </p>
 
             <form id="add-user-form" class="user-form">
               <label><span>Email *</span><input id="new-user-email" type="email" placeholder="nama@gmail.com" required /></label>
@@ -338,7 +372,6 @@
                 <span>Role *</span>
                 <select id="new-user-role" required>
                   <option value="editor">Editor</option>
-                  <option value="reviewer">Reviewer</option>
                   <option value="admin">Admin</option>
                 </select>
               </label>
@@ -362,8 +395,82 @@
     </div>
   </main>
 
+
+  <div id="cluster-lead-modal"
+       class="modal-backdrop"
+       hidden>
+    <section class="modal-card cluster-lead-modal-card">
+      <div class="modal-heading">
+        <div>
+          <p class="eyebrow">CLUSTER GOVERNANCE</p>
+          <h2 id="cluster-lead-modal-title">Manage Cluster Lead</h2>
+        </div>
+
+        <button id="cluster-lead-modal-close"
+                class="close-button"
+                type="button">×</button>
+      </div>
+
+      <div id="cluster-lead-modal-context"
+           class="review-context"></div>
+
+      <form id="cluster-lead-form">
+        <input id="cluster-lead-assignment-id"
+               type="hidden" />
+
+        <div class="form-grid">
+          <label class="wide">
+            <span>Cluster</span>
+            <input id="cluster-lead-cluster"
+                   type="text"
+                   readonly />
+          </label>
+
+          <label>
+            <span>Display Name</span>
+            <input id="cluster-lead-name"
+                   type="text"
+                   placeholder="Nama Cluster Lead" />
+          </label>
+
+          <label>
+            <span>Google / Login Email *</span>
+            <input id="cluster-lead-email"
+                   type="email"
+                   required
+                   placeholder="nama@gmail.com" />
+          </label>
+        </div>
+
+        <div class="owner-guidance">
+          Assignment by email dapat dibuat sebelum login pertama.
+          Setelah login dengan email tersebut, assignment akan otomatis
+          di-bind ke account dan role efektifnya menjadi
+          <strong>Reviewer</strong> untuk cluster ini.
+        </div>
+
+        <div class="form-actions">
+          <span id="cluster-lead-message"
+                class="form-message"></span>
+
+          <button id="end-cluster-lead-button"
+                  class="secondary-button danger-button"
+                  type="button"
+                  hidden>
+            End Assignment
+          </button>
+
+          <button class="primary-button"
+                  type="submit">
+            Assign / Change Cluster Lead
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
-  <script src="admin.js"></script>
+  <script src="admin.js?v=v1-cluster-review-1"></script>
 </body>
 </html>
