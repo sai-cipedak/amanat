@@ -824,7 +824,7 @@ function buildShareUrl() {
   const row = selectedOpportunity();
   if (!row) return "";
 
-  const url = new URL("opportunities.html", window.location.href);
+  const url = new URL("volunteer.html", window.location.href);
   url.searchParams.set("mode", "kpi");
   url.searchParams.set("opportunity", String(row.opportunity_id));
 

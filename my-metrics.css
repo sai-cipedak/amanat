@@ -1244,3 +1244,17 @@ textarea:focus{
     width:100%;
   }
 }
+
+
+/* Volunteer-facing journey moved to volunteer.html */
+[data-moved-to-volunteer="true"],
+.moved-to-volunteer-home{
+  display:none !important;
+}
+
+#workspace-summary:has(#metric-count-card[hidden])
+                   :has(#primary-count-card[hidden])
+                   :has(#pending-owner-card[hidden]){
+  min-height:0;
+}
+

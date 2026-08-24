@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex,nofollow" />
   <title>My Metrics · SAI Cipedak</title>
   <link rel="stylesheet" href="my-metrics.css?v=v1-contrib-1" />
-  <link rel="stylesheet" href="sai-theme.css?v=5d-hotfix-1" />
+  <link rel="stylesheet" href="sai-theme.css?v=v1-unified-nav-1" />
 </head>
 
 <body>
@@ -17,33 +17,28 @@
              alt="Sekolah Alam Indonesia"
              class="sai-brand-logo" />
         <div class="sai-page-identity">
-          <p class="eyebrow">SAI CIPEDAK · VOLUNTEER WORKSPACE</p>
+          <p class="eyebrow">SAI CIPEDAK · METRIC OWNER</p>
           <h1>My Metrics</h1>
           <p class="header-copy">
-            Pantau kontribusi volunteer dan kelola metric yang menjadi tanggung jawab Anda.
+            Kelola metric yang menjadi tanggung jawab Anda.
           </p>
           <span class="sai-accent-rule" aria-hidden="true"></span>
         </div>
       </div>
 
       <div class="header-actions sai-header-actions">
-        <nav class="sai-header-nav" aria-label="Volunteer navigation">
-          <a href="volunteer.html" class="sai-nav-link">Volunteer Home</a>
-          <a href="my-metrics.html" class="sai-nav-link is-current">My Metrics</a>
-          <a href="opportunities.html?mode=kpi" class="sai-nav-link">Cari Opportunity</a>
-          <a href="index.html" class="sai-nav-link">Public Dashboard</a>
-        </nav>
+        <div class="sai-global-nav"
+             data-sai-global-nav></div>
 
-        <div id="session-controls" class="session-controls sai-session-controls" hidden>
+        <div id="session-controls"
+             class="session-controls sai-legacy-session-controls"
+             hidden>
           <div class="session-user">
             <strong id="user-name"></strong>
             <span id="user-email"></span>
           </div>
           <button id="logout-button"
-                  class="secondary-button"
-                  type="button">
-            Sign out
-          </button>
+                  type="button">Sign out</button>
         </div>
       </div>
     </div>
@@ -52,27 +47,24 @@
   <main class="shell main-shell" data-build="V1-CONTRIBUTOR-PROGRESS-1">
 
     <section id="login-panel" class="auth-card">
-      <p class="eyebrow">VOLUNTEER WORKSPACE ACCESS</p>
-      <h2>Sign in with Google</h2>
+      <p class="eyebrow">METRIC OWNER ACCESS</p>
+      <h2>Login diperlukan</h2>
       <p class="muted">
-        Gunakan akun Google untuk melihat application volunteer Anda.
-        Jika Anda juga ditunjuk sebagai Metric Owner, workspace owner akan
-        muncul otomatis.
+        Gunakan menu <strong>Log-in</strong> di kanan atas.
+        Setelah login, metric yang diassign ke akun Anda akan muncul di sini.
       </p>
-
       <button id="google-login-button"
-              class="google-button"
-              type="button">
+              type="button"
+              hidden>
         Continue with Google
       </button>
-
       <p id="login-message" class="form-message"></p>
     </section>
 
     <section id="workspace" hidden>
 
       <section id="workspace-summary" class="summary-grid summary-grid-adaptive">
-        <a id="my-applications-card"
+        <a id="my-applications-card" data-moved-to-volunteer="true"
            class="summary-card summary-card-link"
            href="#my-applications">
           <span>My Applications</span>
@@ -80,9 +72,9 @@
           <small id="my-application-note">0 pending</small>
         </a>
 
-        <a id="matched-opportunity-card"
+        <a id="matched-opportunity-card" data-moved-to-volunteer="true"
            class="summary-card summary-card-link"
-           href="opportunities.html?mode=capacity&use_profile=1">
+           href="volunteer.html?mode=capacity&use_profile=1">
           <span>Matched Opportunities</span>
           <strong>
             <span id="matched-count">0</span>
@@ -91,7 +83,7 @@
           <small>matched / open</small>
         </a>
 
-        <a id="active-contribution-card"
+        <a id="active-contribution-card" data-moved-to-volunteer="true"
            class="summary-card summary-card-link"
            href="#my-contributions">
           <span>Active Contributions</span>
@@ -125,14 +117,14 @@
       </section>
 
       <section id="my-applications"
-               class="panel volunteer-applications-panel">
+               class="panel volunteer-applications-panel moved-to-volunteer-home">
         <div class="section-heading">
           <div>
             <p class="eyebrow">MY VOLUNTEER JOURNEY</p>
             <h2>My Applications</h2>
           </div>
           <a class="text-link"
-             href="opportunities.html?mode=capacity&use_profile=1">
+             href="volunteer.html?mode=capacity&use_profile=1">
             Cari Opportunity
           </a>
         </div>
@@ -142,7 +134,7 @@
       </section>
 
       <section id="my-contributions"
-               class="panel contributor-workspace-panel">
+               class="panel contributor-workspace-panel moved-to-volunteer-home">
         <div class="section-heading">
           <div>
             <p class="eyebrow">ACTIVE CONTRIBUTOR</p>
@@ -745,7 +737,7 @@
   <!-- Active Contributor: Submit Progress                     -->
   <!-- ======================================================= -->
   <div id="contributor-progress-modal"
-       class="modal-backdrop"
+       class="modal-backdrop moved-to-volunteer-home"
        hidden>
     <section class="modal-card contributor-progress-modal-card">
       <div class="modal-heading">
@@ -971,6 +963,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
-  <script src="my-metrics.js?v=v1-contrib-1"></script>
+  <script src="sai-nav.js?v=v1-unified-nav-1"></script>
+  <script src="my-metrics.js?v=v1-owner-focus-1"></script>
 </body>
 </html>
