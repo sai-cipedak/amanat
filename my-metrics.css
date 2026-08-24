@@ -872,3 +872,177 @@ textarea:focus{
     flex-direction:column
   }
 }
+
+
+/* ============================================================
+   Phase 5D Stabilization
+   ============================================================ */
+
+/* Role-aware summary */
+.summary-grid-adaptive{
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr)) !important;
+}
+
+.summary-card-link{
+  color:inherit;
+  text-decoration:none;
+  cursor:pointer;
+}
+
+.summary-card-link:hover{
+  border-color:var(--accent);
+  transform:translateY(-1px);
+}
+
+.summary-fraction{
+  color:var(--muted);
+  font-size:.65em;
+  font-weight:750;
+}
+
+/* Volunteer application tracking */
+.volunteer-applications-panel{
+  margin-bottom:14px;
+}
+
+.my-application-list{
+  display:grid;
+  gap:9px;
+}
+
+.my-application-card{
+  display:grid;
+  grid-template-columns:minmax(0,1.4fr) minmax(220px,.6fr);
+  gap:14px;
+  padding:13px;
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:#fff;
+}
+
+.my-application-card h3{
+  margin:0 0 4px;
+  font-size:14px;
+  line-height:1.3;
+}
+
+.my-application-context{
+  color:var(--muted);
+  font-size:10px;
+}
+
+.my-application-meta{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:7px;
+}
+
+.my-application-stat{
+  padding:8px;
+  border-radius:8px;
+  background:var(--soft);
+}
+
+.my-application-stat span,
+.my-application-stat strong{
+  display:block;
+}
+
+.my-application-stat span{
+  color:var(--muted);
+  font-size:8px;
+  font-weight:850;
+  text-transform:uppercase;
+}
+
+.my-application-stat strong{
+  margin-top:2px;
+  font-size:10px;
+}
+
+.my-application-empty{
+  padding:20px;
+  border:1px dashed var(--line);
+  border-radius:10px;
+  text-align:center;
+  color:var(--muted);
+}
+
+/* Owner/status badges must never be compressed by title width */
+.metric-title-row{
+  align-items:flex-start !important;
+}
+
+.metric-title-block{
+  flex:1 1 auto;
+  min-width:0;
+}
+
+.metric-title-row > .badge-row{
+  flex:0 0 auto;
+  align-items:flex-start;
+  justify-content:flex-end;
+  max-width:42%;
+}
+
+.metric-title-row .badge{
+  flex:0 0 auto !important;
+  min-width:0 !important;
+  min-height:26px !important;
+  height:26px !important;
+  padding:0 9px !important;
+  border-radius:999px !important;
+  white-space:nowrap !important;
+  line-height:26px !important;
+}
+
+/* One action-button visual system */
+.metric-actions{
+  align-items:center !important;
+  flex-wrap:wrap;
+  gap:7px !important;
+}
+
+.metric-action-button,
+.metric-actions .metric-action-button{
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  min-width:0 !important;
+  min-height:36px !important;
+  height:36px !important;
+  padding:0 11px !important;
+  border-radius:9px !important;
+  font-size:10px !important;
+  font-weight:850 !important;
+  line-height:1 !important;
+  text-decoration:none !important;
+  white-space:nowrap !important;
+}
+
+.metric-actions .readonly-note{
+  flex:1 1 210px;
+  margin-right:auto;
+}
+
+@media(max-width:760px){
+  .my-application-card{
+    grid-template-columns:1fr;
+  }
+
+  .metric-title-row > .badge-row{
+    max-width:100%;
+    justify-content:flex-start;
+  }
+}
+
+@media(max-width:580px){
+  .metric-action-button,
+  .metric-actions .metric-action-button{
+    width:100%;
+  }
+
+  .my-application-meta{
+    grid-template-columns:1fr;
+  }
+}

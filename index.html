@@ -6,7 +6,7 @@
   <meta name="description" content="Dashboard Amanat Muskom 2026 SAI Cipedak" />
   <title>SAI Cipedak — KPI Tracker</title>
   <link rel="stylesheet" href="style.css" />
-  <link rel="stylesheet" href="sai-theme.css" />
+  <link rel="stylesheet" href="sai-theme.css?v=5d-hotfix-1" />
 </head>
 <body>
   <header class="site-header">
@@ -27,8 +27,8 @@
       </div>
 
       <div class="header-actions">
-        <a href="volunteer.html" class="secondary-button">
-          Volunteer
+        <a href="volunteer.html" class="sai-nav-link">
+          Volunteer Home
         </a>
 
         <div class="last-updated">
@@ -79,7 +79,7 @@
           <h2>Progress per Cluster</h2>
         </div>
         <p class="muted">
-          Progress KPI dihitung bila seluruh metric di dalamnya memiliki data yang dapat dihitung. KPI yang belum terukur tetap berkontribusi 0% pada agregasi overall dan cluster progress.
+          Untuk KPI multi-metric, progress dihitung sebagai rata-rata seluruh child metric; metric yang belum terukur berkontribusi 0% pada agregasi tanpa mengubah status individualnya dari Needs Data. KPI yang belum memiliki progress tetap berkontribusi 0% pada overall dan cluster progress.
         </p>
       </div>
       <div id="cluster-progress" class="cluster-list"></div>
@@ -237,6 +237,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
-  <script src="app.js"></script>
+  <script src="app.js?v=5d-hotfix-1"></script>
 </body>
 </html>

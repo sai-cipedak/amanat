@@ -628,3 +628,143 @@ body > header a.header-cta:hover,
 .filters-panel .filter-grid {
   align-items: end;
 }
+
+
+/* ============================================================
+   Phase 5D Stabilization — Shared Header / Navigation
+   ============================================================ */
+
+.header-inner,
+.topbar-inner,
+.head{
+  align-items:flex-start !important;
+}
+
+.sai-header-actions,
+.header-actions,
+.topbar-actions,
+.head-actions{
+  display:flex !important;
+  align-items:flex-start !important;
+  justify-content:flex-end;
+  gap:14px !important;
+  flex-wrap:wrap;
+}
+
+.sai-header-nav{
+  display:flex;
+  align-items:flex-start;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.sai-nav-link{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:36px;
+  padding:0 10px;
+  border:1px solid transparent;
+  border-radius:9px;
+  color:var(--sai-baltic) !important;
+  font-size:12px;
+  font-weight:850 !important;
+  line-height:1;
+  text-decoration:none !important;
+  white-space:nowrap;
+}
+
+.sai-nav-link:hover,
+.sai-nav-link.is-current{
+  border-color:#D5E0E9;
+  background:rgba(21,88,154,.05);
+  color:var(--sai-cobalt) !important;
+}
+
+.sai-nav-cta{
+  border-color:var(--sai-cobalt) !important;
+  background:var(--sai-cobalt) !important;
+  color:#fff !important;
+}
+
+.sai-nav-cta:hover{
+  border-color:var(--sai-baltic) !important;
+  background:var(--sai-baltic) !important;
+  color:#fff !important;
+}
+
+.sai-session-controls,
+.session-controls{
+  display:flex;
+  align-items:flex-start !important;
+  gap:10px;
+}
+
+.sai-session-controls[hidden],
+.session-controls[hidden]{
+  display:none !important;
+}
+
+.session-user{
+  align-self:flex-start !important;
+  padding-top:0 !important;
+  margin-top:0 !important;
+  text-align:right;
+  line-height:1.12;
+}
+
+.session-user strong{
+  display:block;
+  margin:0 !important;
+  padding:0 !important;
+  line-height:1.12 !important;
+}
+
+.session-user span{
+  display:block;
+  margin-top:3px !important;
+  line-height:1.15 !important;
+}
+
+/* Do not let page-specific header anchor rules override CTA text. */
+body > header .sai-nav-cta,
+body > header .sai-nav-cta:hover{
+  color:#fff !important;
+}
+
+/* Public-dashboard/header links no longer use external-link arrows. */
+
+@media(max-width:900px){
+  .sai-header-actions,
+  .header-actions,
+  .topbar-actions,
+  .head-actions{
+    width:100%;
+    justify-content:flex-start;
+  }
+
+  .sai-header-nav{
+    width:100%;
+  }
+
+  .session-user{
+    text-align:left;
+  }
+}
+
+@media(max-width:620px){
+  .sai-header-nav{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+
+  .sai-nav-link{
+    width:100%;
+  }
+
+  .sai-session-controls,
+  .session-controls{
+    width:100%;
+    justify-content:space-between;
+  }
+}

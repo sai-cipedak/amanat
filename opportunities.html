@@ -27,7 +27,7 @@
 .deep-link-focus{border:2px solid var(--accent)!important;box-shadow:0 0 0 4px rgba(49,95,66,.10),var(--shadow)!important}
 .deep-link-banner{margin-bottom:12px;padding:10px 12px;border:1px solid #aac5b1;border-radius:10px;background:var(--accentsoft);color:var(--accent);font-size:11px;font-weight:800}
 </style>
-  <link rel="stylesheet" href="sai-theme.css" />
+  <link rel="stylesheet" href="sai-theme.css?v=5d-hotfix-1" />
 </head>
 <body>
 <header class="page-header">
@@ -43,9 +43,13 @@
       </div>
     </div>
 
-    <div class="header-actions">
-      <a href="volunteer.html" class="header-link">Volunteer Home</a>
-      <a href="index.html" class="header-link">Public Dashboard ↗</a>
+    <div class="header-actions sai-header-actions">
+      <nav class="sai-header-nav" aria-label="Volunteer navigation">
+        <a href="volunteer.html" class="sai-nav-link">Volunteer Home</a>
+        <a href="my-metrics.html" class="sai-nav-link">My Metrics</a>
+        <a href="opportunities.html?mode=kpi" class="sai-nav-link sai-nav-cta is-current">Cari Opportunity</a>
+        <a href="index.html" class="sai-nav-link">Public Dashboard</a>
+      </nav>
     </div>
   </div>
 </header>

@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex,nofollow" />
   <title>Admin · SAI Cipedak KPI Tracker</title>
   <link rel="stylesheet" href="admin.css" />
-  <link rel="stylesheet" href="sai-theme.css" />
+  <link rel="stylesheet" href="sai-theme.css?v=5d-hotfix-1" />
 </head>
 <body>
   <header class="topbar">
@@ -22,11 +22,15 @@
         </div>
       </div>
 
-      <div class="topbar-actions">
-        <a href="volunteer-admin.html" class="dashboard-link">Volunteer Admin</a>
-        <a href="index.html" class="dashboard-link">Public Dashboard ↗</a>
+      <div class="topbar-actions sai-header-actions">
+        <nav class="sai-header-nav" aria-label="Admin navigation">
+          <a href="volunteer-admin.html" class="sai-nav-link">Volunteer Admin</a>
+          <a href="volunteer.html" class="sai-nav-link">Volunteer Home</a>
+          <a href="my-metrics.html" class="sai-nav-link">My Metrics</a>
+          <a href="index.html" class="sai-nav-link">Public Dashboard</a>
+        </nav>
 
-        <div id="session-controls" class="session-controls" hidden>
+        <div id="session-controls" class="session-controls sai-session-controls" hidden>
         <div class="session-user">
           <strong id="user-name">—</strong>
           <span id="user-role">—</span>

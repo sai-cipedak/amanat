@@ -5,22 +5,33 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="robots" content="noindex,nofollow" />
   <title>Volunteer Admin · SAI Cipedak</title>
-  <link rel="stylesheet" href="volunteer-admin.css?v=5c4f-1" />
-  <link rel="stylesheet" href="sai-theme.css?v=5c4f-1" />
+  <link rel="stylesheet" href="volunteer-admin.css?v=5d-hotfix-1" />
+  <link rel="stylesheet" href="sai-theme.css?v=5d-hotfix-1" />
 </head>
 <body>
   <header class="topbar">
     <div class="shell topbar-inner">
-      <div>
-        <p class="eyebrow">SAI CIPEDAK · VOLUNTEER</p>
-        <h1>Volunteer Admin</h1>
+      <div class="sai-brand-block">
+        <img src="sai-logo-web.png"
+             alt="Sekolah Alam Indonesia"
+             class="sai-brand-logo" />
+        <div class="sai-page-identity">
+          <p class="eyebrow">SAI CIPEDAK · VOLUNTEER</p>
+          <h1>Volunteer Admin</h1>
+          <span class="sai-accent-rule" aria-hidden="true"></span>
+        </div>
       </div>
 
-      <div class="topbar-actions">
-        <a href="admin.html" class="top-link">KPI Admin</a>
-        <a href="opportunities.html?mode=kpi" class="top-link">Public Opportunities ↗</a>
+      <div class="topbar-actions sai-header-actions">
+        <nav class="sai-header-nav" aria-label="Volunteer admin navigation">
+          <a href="admin.html" class="sai-nav-link">KPI Admin</a>
+          <a href="volunteer.html" class="sai-nav-link">Volunteer Home</a>
+          <a href="my-metrics.html" class="sai-nav-link">My Metrics</a>
+          <a href="opportunities.html?mode=kpi" class="sai-nav-link">Cari Opportunity</a>
+          <a href="index.html" class="sai-nav-link">Public Dashboard</a>
+        </nav>
 
-        <div id="session-controls" class="session-controls" hidden>
+        <div id="session-controls" class="session-controls sai-session-controls" hidden>
           <div class="session-user">
             <strong id="user-name"></strong>
             <span id="user-role"></span>
@@ -556,6 +567,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
-  <script src="volunteer-admin.js?v=5c4f-1"></script>
+  <script src="volunteer-admin.js?v=5d-hotfix-1"></script>
 </body>
 </html>

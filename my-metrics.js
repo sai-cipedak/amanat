@@ -21,7 +21,9 @@ const state = {
   applications: [],
   reviewApplicationId: null,
   reviewDecision: null,
-  skillRequests: []
+  skillRequests: [],
+  volunteerSummary: null,
+  myApplications: []
 };
 
 const $ = id => document.getElementById(id);
@@ -38,8 +40,21 @@ const els = {
 
   metricCount: $("metric-count"),
   primaryCount: $("primary-count"),
-  openCount: $("open-count"),
   pendingCount: $("pending-count"),
+
+  myApplicationCount: $("my-application-count"),
+  myApplicationNote: $("my-application-note"),
+  matchedCount: $("matched-count"),
+  openTotalCount: $("open-total-count"),
+  activeContributionCount: $("active-contribution-count"),
+
+  metricCountCard: $("metric-count-card"),
+  primaryCountCard: $("primary-count-card"),
+  pendingOwnerCard: $("pending-owner-card"),
+
+  myApplicationList: $("my-application-list"),
+  ownerWorkspacePanel: $("owner-workspace-panel"),
+  ownerMetricResults: $("owner-metric-results"),
 
   metricSearch: $("metric-search"),
   ownerRoleFilter: $("owner-role-filter"),
@@ -120,7 +135,6 @@ const els = {
   shareCampaign: $("share-campaign"),
   shareLink: $("share-link"),
   shareMessage: $("share-message"),
-  copyShareButton: $("copy-share-button"),
   publishShareButton: $("publish-share-button"),
 
   applicationsModal: $("applications-modal"),
@@ -212,6 +226,38 @@ async function loadSkillCatalog() {
   state.skillCatalog=data||[];
 }
 
+
+async function loadVolunteerSummary() {
+  const { data, error } = await myMetricsSupabase.rpc(
+    "get_my_volunteer_summary"
+  );
+
+  if (error) throw error;
+
+  state.volunteerSummary =
+    Array.isArray(data) && data.length
+      ? data[0]
+      : {
+          my_applications: 0,
+          pending_applications: 0,
+          approved_applications: 0,
+          rejected_applications: 0,
+          active_contributions: 0,
+          matched_opportunities: 0,
+          open_opportunities: 0
+        };
+}
+
+async function loadMyApplications() {
+  const { data, error } = await myMetricsSupabase.rpc(
+    "get_my_volunteer_applications"
+  );
+
+  if (error) throw error;
+
+  state.myApplications = data || [];
+}
+
 async function loadWorkspace() {
   const { data, error } = await myMetricsSupabase.rpc(
     "get_my_metric_workspace"
@@ -243,21 +289,137 @@ function renderSummary() {
     row => row.owner_role === "primary_owner"
   ).length;
 
-  const open = state.rows.filter(
-    row => row.opportunity_status === "open"
-  ).length;
-
-  const pending = state.rows.reduce(
+  const pendingOwner = state.rows.reduce(
     (sum, row) =>
       sum + Number(row.pending_applications || 0),
     0
   );
 
+  const volunteer = state.volunteerSummary || {};
+
+  els.myApplicationCount.textContent =
+    Number(volunteer.my_applications || 0);
+
+  els.myApplicationNote.textContent =
+    `${Number(volunteer.pending_applications || 0)} pending`;
+
+  els.matchedCount.textContent =
+    Number(volunteer.matched_opportunities || 0);
+
+  els.openTotalCount.textContent =
+    Number(volunteer.open_opportunities || 0);
+
+  els.activeContributionCount.textContent =
+    Number(volunteer.active_contributions || 0);
+
   els.metricCount.textContent = state.rows.length;
   els.primaryCount.textContent = primary;
-  els.openCount.textContent = open;
-  els.pendingCount.textContent = pending;
+  els.pendingCount.textContent = pendingOwner;
+
+  // Owner-specific cards only appear when the capability exists.
+  els.metricCountCard.hidden = state.rows.length === 0;
+  els.primaryCountCard.hidden = primary === 0;
+  els.pendingOwnerCard.hidden = state.rows.length === 0;
+
+  // Pure volunteers should not see an empty owner-management shell.
+  els.ownerWorkspacePanel.hidden = state.rows.length === 0;
+  els.ownerMetricResults.hidden = state.rows.length === 0;
 }
+
+function formatApplicationDate(value) {
+  if (!value) return "—";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "numeric",
+    month: "short",
+    year: "numeric"
+  }).format(date);
+}
+
+function applicationStatusLabel(status) {
+  return {
+    pending: "Pending",
+    approved: "Approved",
+    rejected: "Rejected",
+    withdrawn: "Withdrawn"
+  }[status] || status || "—";
+}
+
+function renderMyApplications() {
+  if (!state.myApplications.length) {
+    els.myApplicationList.innerHTML = `
+      <div class="my-application-empty">
+        Belum ada application yang Anda submit.
+        <br>
+        <a class="text-link"
+           href="opportunities.html?mode=capacity&use_profile=1">
+          Cari opportunity yang cocok
+        </a>
+      </div>
+    `;
+    return;
+  }
+
+  els.myApplicationList.innerHTML =
+    state.myApplications.map(app => {
+      const approved = app.application_status === "approved";
+      const assignment =
+        approved && app.contributor_status
+          ? `${applicationStatusLabel(app.contributor_status)}
+             · ${MODE_LABELS[app.assigned_contribution_mode] || app.assigned_contribution_mode || "—"}
+             · ${app.committed_hours_month ?? "—"} h/month`
+          : "—";
+
+      return `
+        <article class="my-application-card">
+          <div>
+            <div class="badge-row" style="margin-bottom:6px">
+              <span class="badge ${esc(app.application_status)}">
+                ${esc(applicationStatusLabel(app.application_status))}
+              </span>
+            </div>
+
+            <h3>${esc(app.opportunity_title || app.metric_name)}</h3>
+
+            <div class="my-application-context">
+              ${esc(app.kpi_id)} · ${esc(app.kpi_title)}
+              <br>
+              ${esc(app.metric_id)} · ${esc(app.metric_name)}
+            </div>
+          </div>
+
+          <div class="my-application-meta">
+            <div class="my-application-stat">
+              <span>Submitted</span>
+              <strong>${esc(formatApplicationDate(app.submitted_at))}</strong>
+            </div>
+
+            <div class="my-application-stat">
+              <span>Applied As</span>
+              <strong>
+                ${esc(MODE_LABELS[app.applied_contribution_mode] || app.applied_contribution_mode)}
+                · ${esc(app.offered_hours_month)} h/month
+              </strong>
+            </div>
+
+            <div class="my-application-stat">
+              <span>Opportunity</span>
+              <strong>${esc(app.opportunity_status || "—")}</strong>
+            </div>
+
+            <div class="my-application-stat">
+              <span>Assignment</span>
+              <strong>${esc(assignment.replace(/\s+/g, " ").trim())}</strong>
+            </div>
+          </div>
+        </article>
+      `;
+    }).join("");
+}
+
 
 function filteredRows() {
   const q = els.metricSearch.value
@@ -1081,7 +1243,6 @@ function openOwnerShareModal(metricId){
 
   const blocked=["closed","filled"].includes(row.opportunity_status);
 
-  els.copyShareButton.disabled=row.opportunity_status!=="open";
   els.publishShareButton.disabled=blocked;
 
   els.publishShareButton.textContent=
@@ -1494,10 +1655,13 @@ async function submitApplicationReview(){
 
   await Promise.all([
     loadMetricApplications(row.metric_id),
-    loadWorkspace()
+    loadWorkspace(),
+    loadVolunteerSummary(),
+    loadMyApplications()
   ]);
 
   renderSummary();
+  renderMyApplications();
   renderRows();
 }
 
@@ -1507,8 +1671,9 @@ function renderRows() {
   els.resultCount.textContent =
     `${rows.length} metric${rows.length === 1 ? "" : "s"}`;
 
-  els.emptyOwnerState.hidden =
-    state.rows.length > 0;
+  // Pure volunteers do not need an empty owner-state card.
+  // Owner workspace itself is role/capability-aware in renderSummary().
+  els.emptyOwnerState.hidden = true;
 
   if (!rows.length) {
     els.metricList.innerHTML =
@@ -1655,20 +1820,20 @@ function renderRows() {
 
         <div class="metric-actions">
           <span class="readonly-note">
-            Progress update masuk sebagai Draft untuk verification.
+            Progress update masuk sebagai Draft dan tetap memerlukan verification.
           </span>
 
           ${
             row.opportunity_id &&
             row.opportunity_status === "open"
-              ? `<a class="text-link"
+              ? `<a class="secondary-button metric-action-button"
                     href="opportunities.html?mode=kpi&opportunity=${encodeURIComponent(row.opportunity_id)}">
-                   Lihat Public Opportunity ↗
+                   Public Opportunity
                  </a>`
               : ""
           }
 
-          <button class="secondary-button"
+          <button class="secondary-button metric-action-button"
                   type="button"
                   data-review-applications="${esc(row.metric_id)}">
             ${
@@ -1685,7 +1850,7 @@ function renderRows() {
             }
           </button>
 
-          <button class="secondary-button"
+          <button class="secondary-button metric-action-button"
                   type="button"
                   data-share-opportunity="${esc(row.metric_id)}"
                   ${
@@ -1703,19 +1868,19 @@ function renderRows() {
             }
           </button>
 
-          <button class="secondary-button"
+          <button class="secondary-button metric-action-button"
                   type="button"
                   data-manage-opportunity="${esc(row.metric_id)}">
             Manage Opportunity
           </button>
 
-          <button class="secondary-button"
+          <button class="secondary-button metric-action-button"
                   type="button"
                   data-manage-skills="${esc(row.metric_id)}">
             Manage Skills
           </button>
 
-          <button class="primary-button"
+          <button class="primary-button metric-action-button"
                   type="button"
                   data-update-progress="${esc(row.metric_id)}">
             Update Progress
@@ -1784,6 +1949,7 @@ function renderRows() {
 function renderAll() {
   renderSession();
   renderSummary();
+  renderMyApplications();
   renderRows();
 }
 
@@ -1793,7 +1959,12 @@ async function enterWorkspace(session) {
   try {
     // Email-first ownership assignment becomes UID-bound here.
     await claimOwnership();
-    await Promise.all([loadWorkspace(),loadSkillCatalog()]);
+    await Promise.all([
+      loadWorkspace(),
+      loadSkillCatalog(),
+      loadVolunteerSummary(),
+      loadMyApplications()
+    ]);
 
     els.loginPanel.hidden = true;
     els.workspace.hidden = false;
@@ -1815,6 +1986,8 @@ async function enterWorkspace(session) {
 async function exitWorkspace() {
   state.session = null;
   state.rows = [];
+  state.myApplications = [];
+  state.volunteerSummary = null;
 
   els.sessionControls.hidden = true;
   els.workspace.hidden = true;
@@ -1991,17 +2164,6 @@ els.shareModal.addEventListener("click",event=>{
     input.tagName==="SELECT"?"change":"input",
     refreshOwnerShareUrl
   );
-});
-
-els.copyShareButton.addEventListener("click",async()=>{
-  try{
-    refreshOwnerShareUrl();
-    await copyOwnerShareUrl();
-    setShareMessage("Link berhasil dicopy.","success");
-  }catch(error){
-    console.error(error);
-    setShareMessage(error.message,"error");
-  }
 });
 
 els.publishShareButton.addEventListener("click",async()=>{
