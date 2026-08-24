@@ -768,3 +768,25 @@ body > header .sai-nav-cta:hover{
     justify-content:space-between;
   }
 }
+
+
+/* ============================================================
+   Phase 5D Micro Hotfix
+   Navigation: Cari Opportunity is a normal link
+   ============================================================ */
+
+.sai-nav-cta,
+.sai-nav-cta:hover,
+body > header .sai-nav-cta,
+body > header .sai-nav-cta:hover{
+  border-color:transparent !important;
+  background:transparent !important;
+  color:var(--sai-baltic) !important;
+  box-shadow:none !important;
+}
+
+.sai-nav-cta:hover{
+  border-color:#D5E0E9 !important;
+  background:rgba(21,88,154,.05) !important;
+  color:var(--sai-cobalt) !important;
+}

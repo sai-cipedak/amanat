@@ -1046,3 +1046,26 @@ textarea:focus{
     grid-template-columns:1fr;
   }
 }
+
+
+/* ============================================================
+   Phase 5D Micro Hotfix
+   Matched Opportunities summary number
+   ============================================================ */
+
+#matched-opportunity-card > strong{
+  display:flex !important;
+  align-items:baseline !important;
+  gap:4px !important;
+  white-space:nowrap !important;
+}
+
+#matched-opportunity-card > strong > span,
+#matched-opportunity-card .summary-fraction,
+#matched-opportunity-card .summary-fraction > span{
+  display:inline !important;
+  font-size:1em !important;
+  font-weight:inherit !important;
+  line-height:inherit !important;
+  color:inherit !important;
+}
