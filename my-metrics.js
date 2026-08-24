@@ -428,7 +428,7 @@ function renderMyApplications() {
         Belum ada application yang Anda submit.
         <br>
         <a class="text-link"
-           href="opportunities.html?mode=capacity&use_profile=1">
+           href="volunteer.html?mode=capacity&use_profile=1">
           Cari opportunity yang cocok
         </a>
       </div>
@@ -513,8 +513,7 @@ function renderMyContributions() {
     app => app.contributor_status === "active"
   );
 
-  els.myContributionsSection.hidden =
-    contributions.length === 0;
+  els.myContributionsSection.hidden = true;
 
   if (!contributions.length) {
     els.myContributionList.innerHTML = "";
@@ -1837,7 +1836,7 @@ function buildOwnerShareUrl(){
   const row=shareMetricRow();
   if(!row||!row.opportunity_id)return "";
 
-  const url=new URL("opportunities.html",window.location.href);
+  const url=new URL("volunteer.html",window.location.href);
   url.searchParams.set("mode","kpi");
   url.searchParams.set("opportunity",String(row.opportunity_id));
 
@@ -2348,9 +2347,7 @@ function renderRows() {
   els.resultCount.textContent =
     `${rows.length} metric${rows.length === 1 ? "" : "s"}`;
 
-  // Pure volunteers do not need an empty owner-state card.
-  // Owner workspace itself is role/capability-aware in renderSummary().
-  els.emptyOwnerState.hidden = true;
+  els.emptyOwnerState.hidden = state.rows.length > 0;
 
   if (!rows.length) {
     els.metricList.innerHTML =
@@ -2504,7 +2501,7 @@ function renderRows() {
             row.opportunity_id &&
             row.opportunity_status === "open"
               ? `<a class="secondary-button metric-action-button"
-                    href="opportunities.html?mode=kpi&opportunity=${encodeURIComponent(row.opportunity_id)}">
+                    href="volunteer.html?mode=kpi&opportunity=${encodeURIComponent(row.opportunity_id)}">
                    Public Opportunity
                  </a>`
               : ""

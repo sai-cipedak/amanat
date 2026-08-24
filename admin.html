@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex,nofollow" />
   <title>Admin · SAI Cipedak KPI Tracker</title>
   <link rel="stylesheet" href="admin.css?v=v1-cluster-review-1" />
-  <link rel="stylesheet" href="sai-theme.css?v=5d-hotfix-1" />
+  <link rel="stylesheet" href="sai-theme.css?v=v1-unified-nav-1" />
 </head>
 <body>
   <header class="topbar">
@@ -23,19 +23,18 @@
       </div>
 
       <div class="topbar-actions sai-header-actions">
-        <nav class="sai-header-nav" aria-label="Admin navigation">
-          <a href="volunteer-admin.html" class="sai-nav-link">Volunteer Admin</a>
-          <a href="volunteer.html" class="sai-nav-link">Volunteer Home</a>
-          <a href="my-metrics.html" class="sai-nav-link">My Metrics</a>
-          <a href="index.html" class="sai-nav-link">Public Dashboard</a>
-        </nav>
+        <div class="sai-global-nav"
+             data-sai-global-nav></div>
 
-        <div id="session-controls" class="session-controls sai-session-controls" hidden>
-        <div class="session-user">
-          <strong id="user-name">—</strong>
-          <span id="user-role">—</span>
-        </div>
-        <button id="logout-button" class="secondary-button" type="button">Sign out</button>
+        <div id="session-controls"
+             class="session-controls sai-legacy-session-controls"
+             hidden>
+          <div class="session-user">
+            <strong id="user-name">—</strong>
+            <span id="user-role">—</span>
+          </div>
+          <button id="logout-button"
+                  type="button">Sign out</button>
         </div>
       </div>
     </div>
@@ -50,12 +49,14 @@
         Google memverifikasi identitas; akses tetap ditentukan oleh allowlist dan role.
       </p>
 
-      <div class="google-login-wrap">
-        <button id="google-login-button" type="button" class="google-button">
-          <span class="google-mark" aria-hidden="true">G</span>
-          Continue with Google
-        </button>
-      </div>
+      <p class="muted">
+        Gunakan menu <strong>Log-in</strong> di kanan atas.
+      </p>
+      <button id="google-login-button"
+              type="button"
+              hidden>
+        Continue with Google
+      </button>
 
       <p id="login-message" class="form-message"></p>
     </section>
@@ -471,6 +472,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
+  <script src="sai-nav.js?v=v1-unified-nav-1"></script>
   <script src="admin.js?v=v1-cluster-review-1"></script>
 </body>
 </html>
