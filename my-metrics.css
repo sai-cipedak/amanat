@@ -1069,3 +1069,178 @@ textarea:focus{
   line-height:inherit !important;
   color:inherit !important;
 }
+
+
+/* ============================================================
+   v1.0 — Active Contributor Progress Submission
+   ============================================================ */
+
+.contributor-workspace-panel{
+  margin-bottom:14px;
+}
+
+.my-contribution-list{
+  display:grid;
+  gap:9px;
+}
+
+.my-contribution-card{
+  display:grid;
+  grid-template-columns:minmax(0,1.25fr) minmax(250px,.75fr);
+  gap:14px;
+  padding:14px;
+  border:1px solid var(--line);
+  border-radius:11px;
+  background:#fff;
+}
+
+.my-contribution-card h3{
+  margin:0 0 4px;
+  font-size:14px;
+  line-height:1.3;
+}
+
+.my-contribution-context{
+  color:var(--muted);
+  font-size:10px;
+}
+
+.my-contribution-side{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:10px;
+  flex-direction:column;
+}
+
+.my-contribution-meta{
+  width:100%;
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:7px;
+}
+
+.contributor-update-actions{
+  display:flex;
+  gap:7px;
+  justify-content:flex-end;
+  flex-wrap:wrap;
+}
+
+.contributor-progress-modal-card{
+  width:min(900px,100%);
+}
+
+.contributor-update-card{
+  padding:14px;
+  border:1px solid var(--line);
+  border-radius:11px;
+  background:#fff;
+}
+
+.contributor-update-card + .contributor-update-card{
+  margin-top:8px;
+}
+
+.contributor-update-top{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.contributor-update-top h3{
+  margin:0 0 3px;
+  font-size:14px;
+}
+
+.contributor-update-meta{
+  color:var(--muted);
+  font-size:9px;
+}
+
+.contributor-update-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:7px;
+  margin-top:10px;
+}
+
+.contributor-update-block{
+  padding:8px;
+  border-radius:8px;
+  background:var(--soft);
+}
+
+.contributor-update-block span,
+.contributor-update-block strong{
+  display:block;
+}
+
+.contributor-update-block span{
+  color:var(--muted);
+  font-size:8px;
+  font-weight:850;
+  text-transform:uppercase;
+}
+
+.contributor-update-block strong{
+  margin-top:2px;
+  font-size:10px;
+}
+
+.contributor-update-note{
+  margin-top:9px;
+  color:#46515B;
+  font-size:10px;
+}
+
+.contributor-update-review-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:7px;
+  margin-top:10px;
+  padding-top:9px;
+  border-top:1px solid var(--line);
+}
+
+.metric-actions [data-contributor-updates]{
+  display:inline-flex !important;
+}
+
+.badge.accepted{
+  background:rgba(122,153,6,.12);
+  color:#5D7305;
+}
+
+.badge.pending{
+  background:rgba(13,69,180,.09);
+  color:var(--accent2);
+}
+
+@media(max-width:760px){
+  .my-contribution-card{
+    grid-template-columns:1fr;
+  }
+
+  .my-contribution-side{
+    align-items:stretch;
+  }
+
+  .contributor-update-grid{
+    grid-template-columns:1fr;
+  }
+}
+
+@media(max-width:580px){
+  .my-contribution-meta{
+    grid-template-columns:1fr;
+  }
+
+  .contributor-update-review-actions{
+    flex-direction:column;
+  }
+
+  .contributor-update-review-actions button{
+    width:100%;
+  }
+}

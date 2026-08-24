@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="robots" content="noindex,nofollow" />
   <title>My Metrics · SAI Cipedak</title>
-  <link rel="stylesheet" href="my-metrics.css?v=5d-hotfix-1" />
+  <link rel="stylesheet" href="my-metrics.css?v=v1-contrib-1" />
   <link rel="stylesheet" href="sai-theme.css?v=5d-hotfix-1" />
 </head>
 
@@ -49,7 +49,7 @@
     </div>
   </header>
 
-  <main class="shell main-shell" data-build="5D-STABILIZATION-1">
+  <main class="shell main-shell" data-build="V1-CONTRIBUTOR-PROGRESS-1">
 
     <section id="login-panel" class="auth-card">
       <p class="eyebrow">VOLUNTEER WORKSPACE ACCESS</p>
@@ -91,12 +91,13 @@
           <small>matched / open</small>
         </a>
 
-        <article id="active-contribution-card"
-                 class="summary-card">
+        <a id="active-contribution-card"
+           class="summary-card summary-card-link"
+           href="#my-contributions">
           <span>Active Contributions</span>
           <strong id="active-contribution-count">0</strong>
           <small>currently assigned</small>
-        </article>
+        </a>
 
         <article id="metric-count-card"
                  class="summary-card"
@@ -138,6 +139,23 @@
 
         <div id="my-application-list"
              class="my-application-list"></div>
+      </section>
+
+      <section id="my-contributions"
+               class="panel contributor-workspace-panel">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">ACTIVE CONTRIBUTOR</p>
+            <h2>My Active Contributions</h2>
+          </div>
+          <p class="muted">
+            Contributor yang sudah approved dapat mengirim progress update
+            untuk direview Metric Owner.
+          </p>
+        </div>
+
+        <div id="my-contribution-list"
+             class="my-contribution-list"></div>
       </section>
 
       <section id="owner-workspace-panel" class="panel">
@@ -722,8 +740,237 @@
     </section>
   </div>
 
+
+  <!-- ======================================================= -->
+  <!-- Active Contributor: Submit Progress                     -->
+  <!-- ======================================================= -->
+  <div id="contributor-progress-modal"
+       class="modal-backdrop"
+       hidden>
+    <section class="modal-card contributor-progress-modal-card">
+      <div class="modal-heading">
+        <div>
+          <p class="eyebrow">CONTRIBUTOR PROGRESS</p>
+          <h2 id="contributor-progress-title">Submit Progress Update</h2>
+        </div>
+        <button id="contributor-progress-close"
+                class="close-button"
+                type="button">×</button>
+      </div>
+
+      <div id="contributor-progress-context"
+           class="review-context"></div>
+
+      <div class="progress-workspace-grid">
+        <form id="contributor-progress-form"
+              class="progress-form">
+          <div class="form-grid">
+            <label>
+              <span>As-of Date *</span>
+              <input id="contributor-progress-date"
+                     type="date"
+                     required />
+            </label>
+
+            <label>
+              <span>Actual</span>
+              <input id="contributor-progress-actual"
+                     type="number"
+                     step="any"
+                     placeholder="Nilai aktual" />
+            </label>
+
+            <label>
+              <span>Progress Estimate %</span>
+              <input id="contributor-progress-pct"
+                     type="number"
+                     min="0"
+                     max="100"
+                     step="0.1"
+                     placeholder="0–100" />
+            </label>
+
+            <label class="wide">
+              <span>Public Evidence URL</span>
+              <input id="contributor-progress-evidence"
+                     type="url"
+                     placeholder="https://..." />
+            </label>
+
+            <label class="wide">
+              <span>Update Note</span>
+              <textarea id="contributor-progress-note"
+                        rows="4"
+                        placeholder="Jelaskan progress, output, kendala, atau konteks data."></textarea>
+            </label>
+          </div>
+
+          <div class="owner-update-guidance">
+            Update ini <strong>belum menjadi official metric draft</strong>.
+            Metric Owner akan Accept atau Reject terlebih dahulu.
+            Setelah Accept, update masuk ke verification queue Reviewer/Admin.
+          </div>
+
+          <div class="form-actions">
+            <span id="contributor-progress-message"
+                  class="form-message"></span>
+
+            <button class="primary-button"
+                    type="submit">
+              Submit to Metric Owner
+            </button>
+          </div>
+        </form>
+
+        <aside class="history-panel">
+          <div class="history-heading">
+            <div>
+              <p class="eyebrow">MY SUBMISSIONS</p>
+              <h3>Contributor Updates</h3>
+            </div>
+            <span id="contributor-progress-history-count"
+                  class="badge">0</span>
+          </div>
+
+          <div id="contributor-progress-history"
+               class="history-list"></div>
+        </aside>
+      </div>
+    </section>
+  </div>
+
+  <!-- ======================================================= -->
+  <!-- Metric Owner: Contributor Update Queue                  -->
+  <!-- ======================================================= -->
+  <div id="owner-contributor-updates-modal"
+       class="modal-backdrop"
+       hidden>
+    <section class="modal-card applications-modal-card">
+      <div class="modal-heading">
+        <div>
+          <p class="eyebrow">CONTRIBUTOR UPDATES</p>
+          <h2 id="owner-contributor-updates-title">
+            Review Contributor Updates
+          </h2>
+        </div>
+        <button id="owner-contributor-updates-close"
+                class="close-button"
+                type="button">×</button>
+      </div>
+
+      <div id="owner-contributor-updates-context"
+           class="review-context"></div>
+
+      <div class="applications-toolbar">
+        <label>
+          <span>Status</span>
+          <select id="owner-contributor-status-filter">
+            <option value="pending">Pending Owner Review</option>
+            <option value="">Semua status</option>
+            <option value="accepted">Accepted as Draft</option>
+            <option value="rejected">Rejected</option>
+          </select>
+        </label>
+
+        <span id="owner-contributor-updates-count"
+              class="badge">0</span>
+      </div>
+
+      <div id="owner-contributor-updates-list"
+           class="applications-list"></div>
+    </section>
+  </div>
+
+  <!-- ======================================================= -->
+  <!-- Metric Owner: Accept/Edit/Reject Contributor Update     -->
+  <!-- ======================================================= -->
+  <div id="owner-contributor-review-modal"
+       class="modal-backdrop"
+       hidden>
+    <section class="modal-card application-review-card">
+      <div class="modal-heading">
+        <div>
+          <p id="owner-contributor-review-eyebrow"
+             class="eyebrow">
+            CONTRIBUTOR UPDATE REVIEW
+          </p>
+          <h2 id="owner-contributor-review-title">—</h2>
+        </div>
+        <button id="owner-contributor-review-close"
+                class="close-button"
+                type="button">×</button>
+      </div>
+
+      <div id="owner-contributor-review-context"
+           class="review-context"></div>
+
+      <form id="owner-contributor-review-form">
+        <div id="owner-contributor-accept-fields"
+             class="form-grid">
+          <label>
+            <span>As-of Date *</span>
+            <input id="owner-contributor-date"
+                   type="date" />
+          </label>
+
+          <label>
+            <span>Actual</span>
+            <input id="owner-contributor-actual"
+                   type="number"
+                   step="any" />
+          </label>
+
+          <label>
+            <span>Progress %</span>
+            <input id="owner-contributor-pct"
+                   type="number"
+                   min="0"
+                   max="100"
+                   step="0.1" />
+          </label>
+
+          <label class="wide">
+            <span>Public Evidence URL</span>
+            <input id="owner-contributor-evidence"
+                   type="url" />
+          </label>
+
+          <label class="wide">
+            <span>Official Draft Note</span>
+            <textarea id="owner-contributor-note"
+                      rows="4"></textarea>
+          </label>
+        </div>
+
+        <label>
+          <span>Owner Review Note</span>
+          <textarea id="owner-contributor-review-note"
+                    rows="3"
+                    placeholder="Feedback untuk contributor atau konteks keputusan."></textarea>
+        </label>
+
+        <div class="owner-update-guidance">
+          <strong>Accept as Draft</strong> membuat row official
+          `metric_updates` berstatus Draft. Public Dashboard tetap tidak
+          berubah sampai Reviewer/Admin melakukan Verify.
+        </div>
+
+        <div class="form-actions">
+          <span id="owner-contributor-review-message"
+                class="form-message"></span>
+
+          <button id="owner-contributor-review-submit"
+                  class="primary-button"
+                  type="submit">
+            Confirm
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
-  <script src="my-metrics.js?v=5d-hotfix-1"></script>
+  <script src="my-metrics.js?v=v1-contrib-1"></script>
 </body>
 </html>

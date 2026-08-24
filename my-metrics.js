@@ -23,7 +23,14 @@ const state = {
   reviewDecision: null,
   skillRequests: [],
   volunteerSummary: null,
-  myApplications: []
+  myApplications: [],
+  contributorProgressUpdates: [],
+  pendingContributorUpdateCounts: {},
+  selectedContributionMetricId: null,
+  ownerContributorUpdates: [],
+  ownerContributorMetricId: null,
+  ownerContributorReviewId: null,
+  ownerContributorReviewDecision: null
 };
 
 const $ = id => document.getElementById(id);
@@ -53,6 +60,8 @@ const els = {
   pendingOwnerCard: $("pending-owner-card"),
 
   myApplicationList: $("my-application-list"),
+  myContributionsSection: $("my-contributions"),
+  myContributionList: $("my-contribution-list"),
   ownerWorkspacePanel: $("owner-workspace-panel"),
   ownerMetricResults: $("owner-metric-results"),
 
@@ -156,7 +165,45 @@ const els = {
   applicationReviewHours: $("application-review-hours"),
   applicationReviewNote: $("application-review-note"),
   applicationReviewMessage: $("application-review-message"),
-  applicationReviewSubmit: $("application-review-submit")
+  applicationReviewSubmit: $("application-review-submit"),
+
+  contributorProgressModal: $("contributor-progress-modal"),
+  contributorProgressClose: $("contributor-progress-close"),
+  contributorProgressTitle: $("contributor-progress-title"),
+  contributorProgressContext: $("contributor-progress-context"),
+  contributorProgressForm: $("contributor-progress-form"),
+  contributorProgressDate: $("contributor-progress-date"),
+  contributorProgressActual: $("contributor-progress-actual"),
+  contributorProgressPct: $("contributor-progress-pct"),
+  contributorProgressEvidence: $("contributor-progress-evidence"),
+  contributorProgressNote: $("contributor-progress-note"),
+  contributorProgressMessage: $("contributor-progress-message"),
+  contributorProgressHistoryCount: $("contributor-progress-history-count"),
+  contributorProgressHistory: $("contributor-progress-history"),
+
+  ownerContributorUpdatesModal: $("owner-contributor-updates-modal"),
+  ownerContributorUpdatesClose: $("owner-contributor-updates-close"),
+  ownerContributorUpdatesTitle: $("owner-contributor-updates-title"),
+  ownerContributorUpdatesContext: $("owner-contributor-updates-context"),
+  ownerContributorStatusFilter: $("owner-contributor-status-filter"),
+  ownerContributorUpdatesCount: $("owner-contributor-updates-count"),
+  ownerContributorUpdatesList: $("owner-contributor-updates-list"),
+
+  ownerContributorReviewModal: $("owner-contributor-review-modal"),
+  ownerContributorReviewClose: $("owner-contributor-review-close"),
+  ownerContributorReviewEyebrow: $("owner-contributor-review-eyebrow"),
+  ownerContributorReviewTitle: $("owner-contributor-review-title"),
+  ownerContributorReviewContext: $("owner-contributor-review-context"),
+  ownerContributorReviewForm: $("owner-contributor-review-form"),
+  ownerContributorAcceptFields: $("owner-contributor-accept-fields"),
+  ownerContributorDate: $("owner-contributor-date"),
+  ownerContributorActual: $("owner-contributor-actual"),
+  ownerContributorPct: $("owner-contributor-pct"),
+  ownerContributorEvidence: $("owner-contributor-evidence"),
+  ownerContributorNote: $("owner-contributor-note"),
+  ownerContributorReviewNote: $("owner-contributor-review-note"),
+  ownerContributorReviewMessage: $("owner-contributor-review-message"),
+  ownerContributorReviewSubmit: $("owner-contributor-review-submit")
 };
 
 function esc(value) {
@@ -256,6 +303,32 @@ async function loadMyApplications() {
   if (error) throw error;
 
   state.myApplications = data || [];
+}
+
+
+async function loadMyContributorProgressUpdates() {
+  const { data, error } = await myMetricsSupabase.rpc(
+    "get_my_contributor_progress_updates"
+  );
+
+  if (error) throw error;
+
+  state.contributorProgressUpdates = data || [];
+}
+
+async function loadPendingContributorUpdateCounts() {
+  const { data, error } = await myMetricsSupabase.rpc(
+    "get_my_pending_contributor_update_counts"
+  );
+
+  if (error) throw error;
+
+  state.pendingContributorUpdateCounts = Object.fromEntries(
+    (data || []).map(row => [
+      row.metric_id,
+      Number(row.pending_count || 0)
+    ])
+  );
 }
 
 async function loadWorkspace() {
@@ -420,6 +493,607 @@ function renderMyApplications() {
     }).join("");
 }
 
+
+
+function contributionForMetric(metricId) {
+  return state.myApplications.find(app =>
+    app.metric_id === metricId &&
+    app.contributor_status === "active"
+  ) || null;
+}
+
+function contributorUpdatesForMetric(metricId) {
+  return state.contributorProgressUpdates.filter(
+    update => update.metric_id === metricId
+  );
+}
+
+function renderMyContributions() {
+  const contributions = state.myApplications.filter(
+    app => app.contributor_status === "active"
+  );
+
+  els.myContributionsSection.hidden =
+    contributions.length === 0;
+
+  if (!contributions.length) {
+    els.myContributionList.innerHTML = "";
+    return;
+  }
+
+  els.myContributionList.innerHTML =
+    contributions.map(app => {
+      const pending = contributorUpdatesForMetric(app.metric_id)
+        .filter(update => update.update_status === "pending")
+        .length;
+
+      return `
+        <article class="my-contribution-card">
+          <div>
+            <div class="badge-row" style="margin-bottom:6px">
+              <span class="badge active">Active Contributor</span>
+              ${
+                pending
+                  ? `<span class="badge pending">
+                       ${pending} update pending owner review
+                     </span>`
+                  : ""
+              }
+            </div>
+
+            <h3>${esc(app.metric_name)}</h3>
+
+            <div class="my-contribution-context">
+              ${esc(app.kpi_id)} · ${esc(app.kpi_title)}
+              <br>
+              ${esc(app.metric_id)} · ${esc(app.cluster || "")}
+            </div>
+          </div>
+
+          <div class="my-contribution-side">
+            <div class="my-contribution-meta">
+              <div class="my-application-stat">
+                <span>Assigned As</span>
+                <strong>
+                  ${esc(MODE_LABELS[app.assigned_contribution_mode] ||
+                    app.assigned_contribution_mode || "—")}
+                </strong>
+              </div>
+
+              <div class="my-application-stat">
+                <span>Committed</span>
+                <strong>
+                  ${esc(app.committed_hours_month ?? "—")} h/month
+                </strong>
+              </div>
+            </div>
+
+            <div class="contributor-update-actions">
+              <button class="primary-button"
+                      type="button"
+                      data-submit-contributor-progress="${esc(app.metric_id)}">
+                Submit Progress
+              </button>
+            </div>
+          </div>
+        </article>
+      `;
+    }).join("");
+
+  els.myContributionList
+    .querySelectorAll("[data-submit-contributor-progress]")
+    .forEach(button => {
+      button.addEventListener("click", () => {
+        openContributorProgressModal(
+          button.dataset.submitContributorProgress
+        );
+      });
+    });
+}
+
+function setContributorProgressMessage(text, type = "") {
+  els.contributorProgressMessage.textContent = text || "";
+  els.contributorProgressMessage.className =
+    `form-message ${type}`.trim();
+}
+
+function renderContributorProgressHistory(metricId) {
+  const updates = contributorUpdatesForMetric(metricId);
+
+  els.contributorProgressHistoryCount.textContent =
+    updates.length;
+
+  if (!updates.length) {
+    els.contributorProgressHistory.innerHTML = `
+      <div class="empty-owner-state">
+        Belum ada contributor progress submission.
+      </div>
+    `;
+    return;
+  }
+
+  els.contributorProgressHistory.innerHTML =
+    updates.map(update => `
+      <article class="history-row">
+        <div class="history-row-top">
+          <div>
+            <strong>${esc(update.as_of_date || "—")}</strong>
+            <span class="history-meta">
+              Actual: ${esc(formatHistoryValue(update.actual))}
+              · Progress:
+              ${
+                update.progress_pct === null ||
+                update.progress_pct === undefined
+                  ? "—"
+                  : `${esc(update.progress_pct)}%`
+              }
+            </span>
+          </div>
+
+          <span class="badge ${esc(update.update_status)}">
+            ${esc(update.update_status)}
+          </span>
+        </div>
+
+        ${
+          update.update_note
+            ? `<div class="history-note">
+                 ${esc(update.update_note)}
+               </div>`
+            : ""
+        }
+
+        ${
+          update.owner_review_note
+            ? `<div class="history-note">
+                 <strong>Owner:</strong>
+                 ${esc(update.owner_review_note)}
+               </div>`
+            : ""
+        }
+
+        ${
+          update.update_status === "accepted"
+            ? `<div class="history-note">
+                 Accepted as official Draft
+                 ${
+                   update.accepted_metric_update_id
+                     ? `#${esc(update.accepted_metric_update_id)}`
+                     : ""
+                 }.
+               </div>`
+            : ""
+        }
+      </article>
+    `).join("");
+}
+
+function openContributorProgressModal(metricId) {
+  const contribution = contributionForMetric(metricId);
+
+  if (!contribution) {
+    window.alert(
+      "Active contributor assignment untuk metric ini tidak ditemukan."
+    );
+    return;
+  }
+
+  state.selectedContributionMetricId = metricId;
+
+  els.contributorProgressContext.innerHTML = `
+    <strong>${esc(contribution.kpi_id)} · ${esc(contribution.kpi_title)}</strong><br>
+    ${esc(contribution.metric_id)} · ${esc(contribution.metric_name)}<br>
+    Assignment:
+    <strong>
+      ${esc(MODE_LABELS[contribution.assigned_contribution_mode] ||
+        contribution.assigned_contribution_mode)}
+    </strong>
+  `;
+
+  els.contributorProgressDate.value = localDateISO();
+  els.contributorProgressActual.value = "";
+  els.contributorProgressPct.value = "";
+  els.contributorProgressEvidence.value = "";
+  els.contributorProgressNote.value = "";
+
+  setContributorProgressMessage("");
+  renderContributorProgressHistory(metricId);
+
+  els.contributorProgressModal.hidden = false;
+}
+
+async function submitContributorProgress() {
+  const metricId = state.selectedContributionMetricId;
+
+  if (!metricId) {
+    throw new Error("Metric tidak ditemukan.");
+  }
+
+  const actualRaw =
+    els.contributorProgressActual.value.trim();
+
+  const progressRaw =
+    els.contributorProgressPct.value.trim();
+
+  if (!actualRaw && !progressRaw) {
+    throw new Error(
+      "Isi Actual atau Progress Estimate."
+    );
+  }
+
+  const progress =
+    progressRaw === "" ? null : Number(progressRaw);
+
+  if (
+    progress !== null &&
+    (progress < 0 || progress > 100)
+  ) {
+    throw new Error("Progress Estimate harus 0–100.");
+  }
+
+  const { error } = await myMetricsSupabase.rpc(
+    "submit_contributor_progress_update",
+    {
+      p_metric_id: metricId,
+      p_as_of_date: els.contributorProgressDate.value,
+      p_actual:
+        actualRaw === "" ? null : Number(actualRaw),
+      p_progress_pct: progress,
+      p_public_evidence_url:
+        els.contributorProgressEvidence.value.trim() || null,
+      p_update_note:
+        els.contributorProgressNote.value.trim() || null
+    }
+  );
+
+  if (error) throw error;
+
+  await loadMyContributorProgressUpdates();
+
+  els.contributorProgressActual.value = "";
+  els.contributorProgressPct.value = "";
+  els.contributorProgressEvidence.value = "";
+  els.contributorProgressNote.value = "";
+
+  renderContributorProgressHistory(metricId);
+  renderMyContributions();
+}
+
+function ownerContributorMetricRow() {
+  return state.rows.find(
+    row => row.metric_id === state.ownerContributorMetricId
+  ) || null;
+}
+
+function filteredOwnerContributorUpdates() {
+  const status = els.ownerContributorStatusFilter.value;
+
+  return state.ownerContributorUpdates.filter(
+    update => !status || update.update_status === status
+  );
+}
+
+async function loadOwnerContributorUpdates(metricId) {
+  const { data, error } = await myMetricsSupabase.rpc(
+    "get_metric_contributor_progress_updates",
+    { p_metric_id: metricId }
+  );
+
+  if (error) throw error;
+
+  state.ownerContributorUpdates = data || [];
+  renderOwnerContributorUpdates();
+}
+
+function renderOwnerContributorUpdates() {
+  const updates = filteredOwnerContributorUpdates();
+
+  els.ownerContributorUpdatesCount.textContent =
+    updates.length;
+
+  if (!updates.length) {
+    els.ownerContributorUpdatesList.innerHTML = `
+      <div class="empty-owner-state">
+        Tidak ada contributor update untuk status ini.
+      </div>
+    `;
+    return;
+  }
+
+  els.ownerContributorUpdatesList.innerHTML =
+    updates.map(update => `
+      <article class="contributor-update-card">
+        <div class="contributor-update-top">
+          <div>
+            <h3>
+              ${esc(update.contributor_name || update.contributor_email)}
+            </h3>
+            <div class="contributor-update-meta">
+              ${esc(update.contributor_email)}
+              · ${esc(MODE_LABELS[update.contribution_mode] ||
+                update.contribution_mode)}
+              · ${esc(update.committed_hours_month ?? "—")} h/month
+            </div>
+          </div>
+
+          <span class="badge ${esc(update.update_status)}">
+            ${esc(update.update_status)}
+          </span>
+        </div>
+
+        <div class="contributor-update-grid">
+          <div class="contributor-update-block">
+            <span>As-of</span>
+            <strong>${esc(update.as_of_date || "—")}</strong>
+          </div>
+
+          <div class="contributor-update-block">
+            <span>Actual</span>
+            <strong>${esc(formatHistoryValue(update.actual))}</strong>
+          </div>
+
+          <div class="contributor-update-block">
+            <span>Progress</span>
+            <strong>
+              ${
+                update.progress_pct === null ||
+                update.progress_pct === undefined
+                  ? "—"
+                  : `${esc(update.progress_pct)}%`
+              }
+            </strong>
+          </div>
+        </div>
+
+        ${
+          update.update_note
+            ? `<div class="contributor-update-note">
+                 ${esc(update.update_note)}
+               </div>`
+            : ""
+        }
+
+        ${
+          update.public_evidence_url
+            ? `<div class="contributor-update-note">
+                 <a class="text-link"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    href="${esc(update.public_evidence_url)}">
+                   View Evidence
+                 </a>
+               </div>`
+            : ""
+        }
+
+        ${
+          update.owner_review_note
+            ? `<div class="owner-update-guidance">
+                 <strong>Owner review:</strong>
+                 ${esc(update.owner_review_note)}
+               </div>`
+            : ""
+        }
+
+        ${
+          update.update_status === "pending"
+            ? `
+              <div class="contributor-update-review-actions">
+                <button class="reject-button"
+                        type="button"
+                        data-review-contributor-update="${update.contributor_update_id}"
+                        data-decision="reject">
+                  Reject
+                </button>
+
+                <button class="primary-button"
+                        type="button"
+                        data-review-contributor-update="${update.contributor_update_id}"
+                        data-decision="accept">
+                  Accept as Draft
+                </button>
+              </div>
+            `
+            : update.update_status === "accepted"
+              ? `<div class="owner-update-guidance">
+                   Official Draft:
+                   <strong>
+                     #${esc(update.accepted_metric_update_id || "—")}
+                   </strong>
+                 </div>`
+              : ""
+        }
+      </article>
+    `).join("");
+
+  els.ownerContributorUpdatesList
+    .querySelectorAll("[data-review-contributor-update]")
+    .forEach(button => {
+      button.addEventListener("click", () => {
+        openOwnerContributorReview(
+          Number(button.dataset.reviewContributorUpdate),
+          button.dataset.decision
+        );
+      });
+    });
+}
+
+async function openOwnerContributorUpdates(metricId) {
+  const row = state.rows.find(
+    item => item.metric_id === metricId
+  );
+
+  if (!row) return;
+
+  state.ownerContributorMetricId = metricId;
+  state.ownerContributorUpdates = [];
+
+  els.ownerContributorUpdatesContext.innerHTML = `
+    <strong>${esc(row.kpi_id)} · ${esc(row.kpi_title)}</strong><br>
+    ${esc(row.metric_id)} · ${esc(row.metric_name)}<br>
+    Ownership:
+    <strong>${esc(ownerRoleLabel(row.owner_role))}</strong>
+  `;
+
+  els.ownerContributorStatusFilter.value = "pending";
+
+  els.ownerContributorUpdatesList.innerHTML = `
+    <div class="empty-owner-state">
+      Memuat contributor updates…
+    </div>
+  `;
+
+  els.ownerContributorUpdatesModal.hidden = false;
+
+  await loadOwnerContributorUpdates(metricId);
+}
+
+function currentOwnerContributorUpdate() {
+  return state.ownerContributorUpdates.find(
+    update =>
+      Number(update.contributor_update_id) ===
+      Number(state.ownerContributorReviewId)
+  ) || null;
+}
+
+function setOwnerContributorReviewMessage(text, type = "") {
+  els.ownerContributorReviewMessage.textContent =
+    text || "";
+
+  els.ownerContributorReviewMessage.className =
+    `form-message ${type}`.trim();
+}
+
+function openOwnerContributorReview(updateId, decision) {
+  const update = state.ownerContributorUpdates.find(
+    item =>
+      Number(item.contributor_update_id) ===
+      Number(updateId)
+  );
+
+  const row = ownerContributorMetricRow();
+
+  if (!update || !row) return;
+
+  state.ownerContributorReviewId = updateId;
+  state.ownerContributorReviewDecision = decision;
+
+  const accept = decision === "accept";
+
+  els.ownerContributorReviewEyebrow.textContent =
+    accept
+      ? "ACCEPT CONTRIBUTOR UPDATE"
+      : "REJECT CONTRIBUTOR UPDATE";
+
+  els.ownerContributorReviewTitle.textContent =
+    update.contributor_name || update.contributor_email;
+
+  els.ownerContributorReviewContext.innerHTML = `
+    <strong>${esc(row.metric_id)} · ${esc(row.metric_name)}</strong><br>
+    Proposed by ${esc(update.contributor_email)}
+  `;
+
+  els.ownerContributorAcceptFields.hidden = !accept;
+
+  els.ownerContributorDate.value =
+    update.as_of_date || localDateISO();
+
+  els.ownerContributorActual.value =
+    update.actual ?? "";
+
+  els.ownerContributorPct.value =
+    update.progress_pct ?? "";
+
+  els.ownerContributorEvidence.value =
+    update.public_evidence_url || "";
+
+  els.ownerContributorNote.value =
+    update.update_note || "";
+
+  els.ownerContributorReviewNote.value = "";
+
+  els.ownerContributorReviewSubmit.textContent =
+    accept
+      ? "Accept as Draft"
+      : "Reject Update";
+
+  setOwnerContributorReviewMessage("");
+  els.ownerContributorReviewModal.hidden = false;
+}
+
+async function submitOwnerContributorReview() {
+  const update = currentOwnerContributorUpdate();
+
+  if (!update) {
+    throw new Error("Contributor update tidak ditemukan.");
+  }
+
+  const accept =
+    state.ownerContributorReviewDecision === "accept";
+
+  const actualRaw =
+    els.ownerContributorActual.value.trim();
+
+  const progressRaw =
+    els.ownerContributorPct.value.trim();
+
+  if (
+    accept &&
+    !actualRaw &&
+    !progressRaw
+  ) {
+    throw new Error(
+      "Isi Actual atau Progress sebelum Accept."
+    );
+  }
+
+  const { error } = await myMetricsSupabase.rpc(
+    "review_contributor_progress_update",
+    {
+      p_contributor_update_id:
+        update.contributor_update_id,
+      p_decision:
+        state.ownerContributorReviewDecision,
+      p_as_of_date:
+        accept ? els.ownerContributorDate.value : update.as_of_date,
+      p_actual:
+        accept
+          ? (actualRaw === "" ? null : Number(actualRaw))
+          : update.actual,
+      p_progress_pct:
+        accept
+          ? (progressRaw === "" ? null : Number(progressRaw))
+          : update.progress_pct,
+      p_public_evidence_url:
+        accept
+          ? (els.ownerContributorEvidence.value.trim() || null)
+          : update.public_evidence_url,
+      p_update_note:
+        accept
+          ? (els.ownerContributorNote.value.trim() || null)
+          : update.update_note,
+      p_owner_review_note:
+        els.ownerContributorReviewNote.value.trim() || null
+    }
+  );
+
+  if (error) throw error;
+
+  els.ownerContributorReviewModal.hidden = true;
+  state.ownerContributorReviewId = null;
+  state.ownerContributorReviewDecision = null;
+
+  const metricId = state.ownerContributorMetricId;
+
+  await Promise.all([
+    loadOwnerContributorUpdates(metricId),
+    loadPendingContributorUpdateCounts(),
+    loadMyContributorProgressUpdates()
+  ]);
+
+  renderRows();
+  renderMyContributions();
+}
 
 function filteredRows() {
   const q = els.metricSearch.value
@@ -1657,11 +2331,14 @@ async function submitApplicationReview(){
     loadMetricApplications(row.metric_id),
     loadWorkspace(),
     loadVolunteerSummary(),
-    loadMyApplications()
+    loadMyApplications(),
+    loadMyContributorProgressUpdates(),
+    loadPendingContributorUpdateCounts()
   ]);
 
   renderSummary();
   renderMyApplications();
+  renderMyContributions();
   renderRows();
 }
 
@@ -1835,6 +2512,19 @@ function renderRows() {
 
           <button class="secondary-button metric-action-button"
                   type="button"
+                  data-contributor-updates="${esc(row.metric_id)}">
+            Contributor Updates
+            ${
+              Number(state.pendingContributorUpdateCounts[row.metric_id] || 0) > 0
+                ? `<span class="application-count-badge">
+                     ${Number(state.pendingContributorUpdateCounts[row.metric_id] || 0)}
+                   </span>`
+                : ""
+            }
+          </button>
+
+          <button class="secondary-button metric-action-button"
+                  type="button"
                   data-review-applications="${esc(row.metric_id)}">
             ${
               row.owner_role === "primary_owner"
@@ -1944,12 +2634,28 @@ function renderRows() {
         }
       });
     });
+
+  els.metricList
+    .querySelectorAll("[data-contributor-updates]")
+    .forEach(button => {
+      button.addEventListener("click", async () => {
+        try{
+          await openOwnerContributorUpdates(
+            button.dataset.contributorUpdates
+          );
+        }catch(error){
+          console.error(error);
+          window.alert(error.message);
+        }
+      });
+    });
 }
 
 function renderAll() {
   renderSession();
   renderSummary();
   renderMyApplications();
+  renderMyContributions();
   renderRows();
 }
 
@@ -1963,7 +2669,9 @@ async function enterWorkspace(session) {
       loadWorkspace(),
       loadSkillCatalog(),
       loadVolunteerSummary(),
-      loadMyApplications()
+      loadMyApplications(),
+      loadMyContributorProgressUpdates(),
+      loadPendingContributorUpdateCounts()
     ]);
 
     els.loginPanel.hidden = true;
@@ -1988,6 +2696,9 @@ async function exitWorkspace() {
   state.rows = [];
   state.myApplications = [];
   state.volunteerSummary = null;
+  state.contributorProgressUpdates = [];
+  state.pendingContributorUpdateCounts = {};
+  state.ownerContributorUpdates = [];
 
   els.sessionControls.hidden = true;
   els.workspace.hidden = true;
@@ -2213,6 +2924,95 @@ els.applicationReviewForm.addEventListener(
     }catch(error){
       console.error(error);
       setApplicationReviewMessage(
+        error.message,
+        "error"
+      );
+    }
+  }
+);
+
+
+els.contributorProgressClose.addEventListener("click", () => {
+  els.contributorProgressModal.hidden = true;
+});
+
+els.contributorProgressModal.addEventListener("click", event => {
+  if (event.target === els.contributorProgressModal) {
+    els.contributorProgressModal.hidden = true;
+  }
+});
+
+els.contributorProgressForm.addEventListener(
+  "submit",
+  async event => {
+    event.preventDefault();
+
+    try {
+      setContributorProgressMessage("Submitting…");
+      await submitContributorProgress();
+
+      setContributorProgressMessage(
+        "Update terkirim ke Metric Owner.",
+        "success"
+      );
+    } catch (error) {
+      console.error(error);
+      setContributorProgressMessage(
+        error.message,
+        "error"
+      );
+    }
+  }
+);
+
+els.ownerContributorUpdatesClose.addEventListener(
+  "click",
+  () => {
+    els.ownerContributorUpdatesModal.hidden = true;
+  }
+);
+
+els.ownerContributorUpdatesModal.addEventListener(
+  "click",
+  event => {
+    if (event.target === els.ownerContributorUpdatesModal) {
+      els.ownerContributorUpdatesModal.hidden = true;
+    }
+  }
+);
+
+els.ownerContributorStatusFilter.addEventListener(
+  "change",
+  renderOwnerContributorUpdates
+);
+
+els.ownerContributorReviewClose.addEventListener(
+  "click",
+  () => {
+    els.ownerContributorReviewModal.hidden = true;
+  }
+);
+
+els.ownerContributorReviewModal.addEventListener(
+  "click",
+  event => {
+    if (event.target === els.ownerContributorReviewModal) {
+      els.ownerContributorReviewModal.hidden = true;
+    }
+  }
+);
+
+els.ownerContributorReviewForm.addEventListener(
+  "submit",
+  async event => {
+    event.preventDefault();
+
+    try {
+      setOwnerContributorReviewMessage("Processing…");
+      await submitOwnerContributorReview();
+    } catch (error) {
+      console.error(error);
+      setOwnerContributorReviewMessage(
         error.message,
         "error"
       );
