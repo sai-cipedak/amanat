@@ -38,6 +38,10 @@ function clamp(value) {
   return Math.max(0, Math.min(100, value));
 }
 
+// kpi_metrics is the public snapshot of the latest VERIFIED metric update.
+ // The DB snapshot trigger rolls the latest approved/verified update into
+ // progress_pct / actual / actual_date. Public aggregation therefore starts
+ // from this snapshot and never from pending/draft contributor or owner data.
 function metricProgress(metric) {
   if (metric.progress_pct !== null && metric.progress_pct !== undefined) {
     return clamp(Number(metric.progress_pct));
@@ -98,36 +102,79 @@ function metricReadiness(metric) {
   return progress === null ? "needs_data" : "measured";
 }
 
-function kpiProgress(kpi) {
-  const metrics = (kpi.kpi_metrics || []).filter(m => m.is_public !== false);
-  if (!metrics.length) return null;
+function metricAggregateValue(metric) {
+  const progress = metricProgress(metric);
+  return progress === null ? 0 : progress;
+}
 
-  const calculated = metrics.map(metric => ({
-    progress: metricProgress(metric),
-    weight: Number(metric.weight || 1)
-  }));
+function averageMetricProgress(metrics) {
+  const publicMetrics = (metrics || []).filter(
+    metric => metric.is_public !== false
+  );
 
-  // Conservative rule: do not show a KPI progress number until all metrics are measurable.
-  if (calculated.some(item => item.progress === null)) return null;
+  if (!publicMetrics.length) return null;
 
-  const denominator = calculated.reduce((sum, item) => sum + item.weight, 0);
-  if (!denominator) return null;
-
-  return calculated.reduce(
-    (sum, item) => sum + item.progress * item.weight,
+  const total = publicMetrics.reduce(
+    (sum, metric) => sum + metricAggregateValue(metric),
     0
-  ) / denominator;
+  );
+
+  return total / publicMetrics.length;
+}
+
+function kpiProgress(kpi) {
+  return averageMetricProgress(kpi.kpi_metrics || []);
+}
+
+function mandateProgress(mandateId) {
+  const metrics = state.kpis
+    .filter(kpi => kpi.mandate_id === mandateId)
+    .flatMap(kpi => (kpi.kpi_metrics || []).filter(
+      metric => metric.is_public !== false
+    ));
+
+  return averageMetricProgress(metrics);
+}
+
+function clusterProgress(clusterName) {
+  const metrics = state.kpis
+    .filter(
+      kpi =>
+        (kpi.mandates?.cluster || "Belum diklasifikasikan") === clusterName
+    )
+    .flatMap(kpi => (kpi.kpi_metrics || []).filter(
+      metric => metric.is_public !== false
+    ));
+
+  return averageMetricProgress(metrics);
+}
+
+function overallPortfolioProgress() {
+  const metrics = state.kpis.flatMap(
+    kpi => (kpi.kpi_metrics || []).filter(
+      metric => metric.is_public !== false
+    )
+  );
+
+  return averageMetricProgress(metrics);
 }
 
 function kpiDataState(kpi) {
-  const metrics = kpi.kpi_metrics || [];
+  const metrics = (kpi.kpi_metrics || []).filter(
+    metric => metric.is_public !== false
+  );
+
   if (!metrics.length) return "needs_data";
 
-  if (metrics.some(m => metricReadiness(m) === "needs_target")) {
+  if (metrics.some(metric => metricReadiness(metric) === "needs_target")) {
     return "needs_target";
   }
 
-  return kpiProgress(kpi) === null ? "needs_data" : "measured";
+  const hasAnyMeasuredMetric = metrics.some(
+    metric => metricProgress(metric) !== null
+  );
+
+  return hasAnyMeasuredMetric ? "measured" : "needs_data";
 }
 
 
@@ -198,7 +245,10 @@ function formatMetricValue(metric) {
 }
 
 function formatProgress(value) {
-  return value === null ? "—" : `${Math.round(value)}%`;
+  if (value === null || value === undefined) return "—";
+
+  const rounded = Math.round(Number(value) * 10) / 10;
+  return `${rounded}%`;
 }
 
 function formatDate(dateString) {
@@ -362,20 +412,16 @@ function renderSummary() {
     kpi => kpiProjectStatus(kpi) === "active"
   ).length;
 
-  const measured = state.kpis
-    .map(kpi => kpiProgress(kpi))
-    .filter(value => value !== null);
+  const portfolioProgress = overallPortfolioProgress();
 
-  els.activeProjects.textContent = `${activeKpiCount}/${state.kpis.length}`;
+  els.activeProjects.textContent =
+    `${activeKpiCount}/${state.kpis.length}`;
+
   els.volunteerCount.textContent =
     `${state.volunteerStats.activeAssignments}/${state.volunteerStats.neededSlots}`;
 
-  if (measured.length) {
-    const average = measured.reduce((a, b) => a + b, 0) / measured.length;
-    els.overallProgress.textContent = `${Math.round(average)}%`;
-  } else {
-    els.overallProgress.textContent = "—";
-  }
+  els.overallProgress.textContent =
+    formatProgress(portfolioProgress);
 
   const timestamps = state.kpis.flatMap(kpi => [
     kpi.updated_at,
@@ -408,13 +454,17 @@ function renderClusters() {
   [...map.entries()]
     .sort(([a], [b]) => a.localeCompare(b, "id"))
     .forEach(([cluster, kpis]) => {
-      const progressValues = kpis
-        .map(kpi => kpiProgress(kpi))
-        .filter(value => value !== null);
+      const metrics = kpis.flatMap(
+        kpi => (kpi.kpi_metrics || []).filter(
+          metric => metric.is_public !== false
+        )
+      );
 
-      const progress = progressValues.length
-        ? progressValues.reduce((a, b) => a + b, 0) / progressValues.length
-        : null;
+      const measuredMetricCount = metrics.filter(
+        metric => metricProgress(metric) !== null
+      ).length;
+
+      const progress = averageMetricProgress(metrics);
 
       const row = document.createElement("div");
       row.className = "cluster-row";
@@ -423,11 +473,16 @@ function renderClusters() {
       name.className = "cluster-name";
       name.innerHTML = `
         <strong>${escapeHtml(cluster)}</strong>
-        <small>${kpis.length} KPI · ${progressValues.length} terukur</small>
+        <small>
+          ${kpis.length} KPI ·
+          ${metrics.length} metrics ·
+          ${measuredMetricCount} with progress data
+        </small>
       `;
 
       const track = document.createElement("div");
       track.className = "progress-track";
+
       const bar = document.createElement("div");
       bar.className = "progress-bar";
       bar.style.width = `${progress ?? 0}%`;
@@ -437,7 +492,7 @@ function renderClusters() {
       value.className = "cluster-value";
       value.innerHTML = `
         <strong>${formatProgress(progress)}</strong>
-        <small>${progress === null ? "Needs data" : "measured progress"}</small>
+        <small>all-metric average</small>
       `;
 
       row.append(name, track, value);
@@ -501,8 +556,11 @@ function renderKpis() {
     fragment.querySelector(".project-priority-flag").textContent = formatPriorityLabel(kpi);
     fragment.querySelector(".project-activity-flag").textContent = formatProjectStatus(kpiProjectStatus(kpi));
     fragment.querySelector(".kpi-title").textContent = kpi.title;
+    const mandateId = kpi.mandates?.id || kpi.mandate_id;
+    const mandateValue = mandateProgress(mandateId);
+
     fragment.querySelector(".kpi-mandate").textContent =
-      `${kpi.mandates?.id || ""} · ${kpi.mandates?.title || "Amanat belum tersedia"}`;
+      `${kpi.mandates?.id || ""} · ${kpi.mandates?.title || "Amanat belum tersedia"} · Amanat ${formatProgress(mandateValue)}`;
 
     fragment.querySelector(".kpi-progress-value").textContent = formatProgress(progress);
     fragment.querySelector(".kpi-data-state").textContent = formatDataState(dataState);
