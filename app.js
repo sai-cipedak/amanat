@@ -1,22 +1,15 @@
-// Public dashboard must always behave as an anonymous reader.
-// It intentionally ignores any Supabase Auth session that may exist
-// in the same browser from /admin.html.
 const supabaseClient = supabase.createClient(
   SUPABASE_URL,
-  SUPABASE_PUBLISHABLE_KEY,
-  {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-      storageKey: "sai-kpi-public-anon"
-    }
-  }
+  SUPABASE_PUBLISHABLE_KEY
 );
 
 const state = {
   kpis: [],
-  filtered: []
+  filtered: [],
+  volunteerStats: {
+    activeAssignments: 0,
+    neededSlots: 0
+  }
 };
 
 const els = {
@@ -26,11 +19,8 @@ const els = {
   list: document.getElementById("kpi-list"),
   template: document.getElementById("kpi-template"),
   clusterProgress: document.getElementById("cluster-progress"),
-  totalMandates: document.getElementById("total-mandates"),
-  totalKpis: document.getElementById("total-kpis"),
-  totalMetrics: document.getElementById("total-metrics"),
-  progressCoverage: document.getElementById("progress-coverage"),
-  progressCoverageNote: document.getElementById("progress-coverage-note"),
+  activeProjects: document.getElementById("active-projects"),
+  volunteerCount: document.getElementById("volunteer-count"),
   overallProgress: document.getElementById("overall-progress"),
   lastUpdated: document.getElementById("last-updated"),
   resultCount: document.getElementById("result-count"),
@@ -109,44 +99,35 @@ function metricReadiness(metric) {
 }
 
 function kpiProgress(kpi) {
-  const metrics = (kpi.kpi_metrics || []).filter(
-    metric => metric.is_public !== false
-  );
-
+  const metrics = (kpi.kpi_metrics || []).filter(m => m.is_public !== false);
   if (!metrics.length) return null;
 
-  const progressValues = metrics.map(metric => metricProgress(metric));
+  const calculated = metrics.map(metric => ({
+    progress: metricProgress(metric),
+    weight: Number(metric.weight || 1)
+  }));
 
-  // Single-metric KPI preserves the metric's own data state.
-  if (metrics.length === 1) {
-    return progressValues[0];
-  }
+  // Conservative rule: do not show a KPI progress number until all metrics are measurable.
+  if (calculated.some(item => item.progress === null)) return null;
 
-  // Multi-metric KPI is always an equal-weight aggregate.
-  // A child metric without measurable progress contributes 0%.
-  // Example: [40%, null] => (40 + 0) / 2 = 20%.
-  return progressValues.reduce(
-    (sum, progress) => sum + (progress ?? 0),
+  const denominator = calculated.reduce((sum, item) => sum + item.weight, 0);
+  if (!denominator) return null;
+
+  return calculated.reduce(
+    (sum, item) => sum + item.progress * item.weight,
     0
-  ) / metrics.length;
+  ) / denominator;
 }
 
 function kpiDataState(kpi) {
-  const metrics = (kpi.kpi_metrics || []).filter(
-    metric => metric.is_public !== false
-  );
-
+  const metrics = kpi.kpi_metrics || [];
   if (!metrics.length) return "needs_data";
 
-  if (metrics.some(metric => metricReadiness(metric) === "needs_target")) {
+  if (metrics.some(m => metricReadiness(m) === "needs_target")) {
     return "needs_target";
   }
 
-  const measurableCount = metrics.filter(
-    metric => metricProgress(metric) !== null
-  ).length;
-
-  return measurableCount > 0 ? "measured" : "needs_data";
+  return kpiProgress(kpi) === null ? "needs_data" : "measured";
 }
 
 function formatDataState(value) {
@@ -195,103 +176,9 @@ function formatDate(dateString) {
   }).format(d);
 }
 
-function formatActualMeta(metric) {
-  const parts = [];
-  if (metric.actual_date) parts.push(`As of ${formatDate(metric.actual_date)}`);
-  if (metric.actual_note) parts.push(metric.actual_note);
-  return parts.join(" · ");
-}
-
-
-function kpiActivityState(kpi) {
-  const metrics = (kpi.kpi_metrics || []).filter(
-    metric => metric.is_public !== false
-  );
-
-  if (!metrics.length) {
-    return kpi.is_active_manual ? "active" : "not_active";
-  }
-
-  const progressValues = metrics.map(metric => metricProgress(metric));
-
-  const completed =
-    progressValues.length > 0 &&
-    progressValues.every(
-      progress => progress !== null && progress >= 100
-    );
-
-  if (completed) return "completed";
-
-  const hasProgress = progressValues.some(
-    progress => progress !== null && progress > 0
-  );
-
-  if (kpi.is_active_manual || hasProgress) return "active";
-
-  return "not_active";
-}
-
-function formatActivityState(value) {
-  return {
-    active: "● Active",
-    not_active: "○ Belum Active",
-    completed: "✓ Completed"
-  }[value] || "—";
-}
-
-function formatPriorityState(kpi) {
-  return kpi.is_priority
-    ? "★ Prioritas"
-    : "◇ Less Priority";
-}
-
-function numericKpiKey(id) {
-  const match = String(id || "").match(/^AM(\d+)-K(\d+)$/i);
-  if (!match) return [9999, 9999];
-  return [Number(match[1]), Number(match[2])];
-}
-
-function buildClusterOrderMap(kpis) {
-  const order = new Map();
-
-  kpis.forEach(kpi => {
-    const cluster = kpi.mandates?.cluster || "Belum diklasifikasikan";
-    const mandateOrder = Number(kpi.mandates?.sort_order ?? 9999);
-
-    if (!order.has(cluster) || mandateOrder < order.get(cluster)) {
-      order.set(cluster, mandateOrder);
-    }
-  });
-
-  return order;
-}
-
-function compareKpisByClusterThenId(a, b, clusterOrder) {
-  const clusterA = a.mandates?.cluster || "Belum diklasifikasikan";
-  const clusterB = b.mandates?.cluster || "Belum diklasifikasikan";
-
-  const rankA = clusterOrder.get(clusterA) ?? 9999;
-  const rankB = clusterOrder.get(clusterB) ?? 9999;
-
-  if (rankA !== rankB) return rankA - rankB;
-
-  const clusterCompare = clusterA.localeCompare(clusterB, "id");
-  if (clusterCompare !== 0 && rankA === rankB) {
-    return clusterCompare;
-  }
-
-  const [amA, kA] = numericKpiKey(a.id);
-  const [amB, kB] = numericKpiKey(b.id);
-
-  if (amA !== amB) return amA - amB;
-  if (kA !== kB) return kA - kB;
-
-  return String(a.id).localeCompare(String(b.id), "id");
-}
-
 async function loadData() {
   try {
-    const { data, error } = await supabaseClient
+    const kpiPromise = supabaseClient
       .from("kpis")
       .select(`
         id,
@@ -305,10 +192,10 @@ async function loadData() {
         evidence_requirement,
         status,
         sort_order,
-        is_priority,
-        is_active_manual,
         is_public,
         updated_at,
+        is_priority,
+        is_active_manual,
         mandates (
           id,
           title,
@@ -326,9 +213,6 @@ async function loadData() {
           target,
           target_description,
           actual,
-          actual_date,
-          actual_note,
-          public_evidence_url,
           unit,
           weight,
           progress_pct,
@@ -341,31 +225,80 @@ async function loadData() {
       .eq("is_public", true)
       .order("sort_order", { ascending: true });
 
-    if (error) throw error;
+    const [
+      kpiResult,
+      opportunitiesResult,
+      contributorsResult,
+      approvedApplicationsResult
+    ] = await Promise.allSettled([
+      kpiPromise,
+      supabaseClient
+        .from("volunteer_opportunities")
+        .select("id,status,volunteer_slots")
+        .neq("status", "closed"),
+      supabaseClient
+        .from("metric_contributors")
+        .select("id,assignment_status"),
+      supabaseClient
+        .from("volunteer_applications")
+        .select("id,status")
+        .eq("status", "approved")
+    ]);
 
-    state.kpis = (data || []).map(kpi => ({
+    if (kpiResult.status !== "fulfilled") throw kpiResult.reason;
+    if (kpiResult.value.error) throw kpiResult.value.error;
+
+    const data = kpiResult.value.data || [];
+
+    state.kpis = data.map(kpi => ({
       ...kpi,
       kpi_metrics: (kpi.kpi_metrics || [])
         .filter(metric => metric.is_public !== false)
         .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
     }));
 
-    const clusterOrder = buildClusterOrderMap(state.kpis);
+    const opportunities =
+      opportunitiesResult.status === "fulfilled" && !opportunitiesResult.value.error
+        ? (opportunitiesResult.value.data || [])
+        : [];
 
-    state.kpis.sort((a, b) =>
-      compareKpisByClusterThenId(a, b, clusterOrder)
-    );
+    const contributorRows =
+      contributorsResult.status === "fulfilled" && !contributorsResult.value.error
+        ? (contributorsResult.value.data || [])
+        : [];
+
+    const approvedApps =
+      approvedApplicationsResult.status === "fulfilled" && !approvedApplicationsResult.value.error
+        ? (approvedApplicationsResult.value.data || [])
+        : [];
+
+    const neededSlots = opportunities
+      .filter(opportunity => opportunity.status === "open")
+      .reduce(
+        (sum, opportunity) =>
+          sum + Math.max(1, Number(opportunity.volunteer_slots || 0)),
+        0
+      );
+
+    const activeAssignments = contributorRows.length
+      ? contributorRows.filter(row => row.assignment_status === "active").length
+      : approvedApps.length;
+
+    state.volunteerStats = {
+      activeAssignments,
+      neededSlots
+    };
 
     state.filtered = [...state.kpis];
 
     populateClusterFilter();
     renderAll();
+
     els.loading.hidden = true;
   } catch (error) {
     console.error(error);
-    els.loading.hidden = true;
     els.error.hidden = false;
-    els.errorMessage.textContent = error.message || "Unknown error";
+    els.errorMessage.textContent = error.message || "Gagal memuat data KPI.";
   }
 }
 
@@ -389,39 +322,29 @@ function renderAll() {
 }
 
 function renderSummary() {
-  const mandateIds = new Set(state.kpis.map(kpi => kpi.mandate_id));
-  const metrics = state.kpis.flatMap(kpi => kpi.kpi_metrics || []);
+  const activeKpiCount = state.kpis.filter(
+    kpi => kpiProjectStatus(kpi) === "active"
+  ).length;
 
-  // Portfolio progress uses ALL official KPIs as the denominator.
-  // A KPI without measurable progress contributes 0% to the aggregate,
-  // while coverage remains visible separately.
-  const progressValues = state.kpis.map(kpi => kpiProgress(kpi));
-  const measured = progressValues.filter(value => value !== null);
+  const measured = state.kpis
+    .map(kpi => kpiProgress(kpi))
+    .filter(value => value !== null);
 
-  els.totalMandates.textContent = mandateIds.size;
-  els.totalKpis.textContent = state.kpis.length;
-  els.totalMetrics.textContent = metrics.length;
-  els.progressCoverage.textContent = `${measured.length}/${state.kpis.length}`;
-  els.progressCoverageNote.textContent = "KPI punya progress data";
+  els.activeProjects.textContent = `${activeKpiCount}/${state.kpis.length}`;
+  els.volunteerCount.textContent =
+    `${state.volunteerStats.activeAssignments}/${state.volunteerStats.neededSlots}`;
 
-  const totalProgress = progressValues.reduce(
-    (sum, value) => sum + (value ?? 0),
-    0
-  );
+  if (measured.length) {
+    const average = measured.reduce((a, b) => a + b, 0) / measured.length;
+    els.overallProgress.textContent = `${Math.round(average)}%`;
+  } else {
+    els.overallProgress.textContent = "—";
+  }
 
-  const overallProgress = state.kpis.length
-    ? totalProgress / state.kpis.length
-    : 0;
-
-  els.overallProgress.textContent = `${Math.round(overallProgress)}%`;
-
-  const timestamps = [
-    ...state.kpis.map(k => k.updated_at),
-    ...metrics.map(m => m.updated_at)
-  ]
-    .filter(Boolean)
-    .map(value => new Date(value))
-    .filter(date => !Number.isNaN(date.getTime()));
+  const timestamps = state.kpis.flatMap(kpi => [
+    kpi.updated_at,
+    ...(kpi.kpi_metrics || []).map(metric => metric.updated_at)
+  ]).filter(Boolean).map(value => new Date(value));
 
   if (timestamps.length) {
     const latest = new Date(Math.max(...timestamps.map(d => d.getTime())));
@@ -449,21 +372,13 @@ function renderClusters() {
   [...map.entries()]
     .sort(([a], [b]) => a.localeCompare(b, "id"))
     .forEach(([cluster, kpis]) => {
-      // Cluster progress uses every KPI in the cluster as the denominator.
-      // Unmeasured KPI contributes 0% until it has measurable data.
-      const allProgressValues = kpis.map(kpi => kpiProgress(kpi));
-      const measuredProgressValues = allProgressValues.filter(
-        value => value !== null
-      );
+      const progressValues = kpis
+        .map(kpi => kpiProgress(kpi))
+        .filter(value => value !== null);
 
-      const totalProgress = allProgressValues.reduce(
-        (sum, value) => sum + (value ?? 0),
-        0
-      );
-
-      const progress = kpis.length
-        ? totalProgress / kpis.length
-        : 0;
+      const progress = progressValues.length
+        ? progressValues.reduce((a, b) => a + b, 0) / progressValues.length
+        : null;
 
       const row = document.createElement("div");
       row.className = "cluster-row";
@@ -472,7 +387,7 @@ function renderClusters() {
       name.className = "cluster-name";
       name.innerHTML = `
         <strong>${escapeHtml(cluster)}</strong>
-        <small>${kpis.length} KPI · ${measuredProgressValues.length} terukur</small>
+        <small>${kpis.length} KPI · ${progressValues.length} terukur</small>
       `;
 
       const track = document.createElement("div");
@@ -486,7 +401,7 @@ function renderClusters() {
       value.className = "cluster-value";
       value.innerHTML = `
         <strong>${formatProgress(progress)}</strong>
-        <small>overall progress</small>
+        <small>${progress === null ? "Needs data" : "measured progress"}</small>
       `;
 
       row.append(name, track, value);
@@ -520,17 +435,13 @@ function applyFilters() {
       (!type || kpi.measurement_type === type) &&
       (!responsibility || kpi.responsibility === responsibility) &&
       (!priority ||
-        (priority === "priority" && kpi.is_priority) ||
-        (priority === "less_priority" && !kpi.is_priority)) &&
-      (!activity || kpiActivityState(kpi) === activity) &&
+        (priority === "priority"
+          ? isKpiPriority(kpi)
+          : !isKpiPriority(kpi))) &&
+      (!activity || kpiProjectStatus(kpi) === activity) &&
       (!dataState || kpiDataState(kpi) === dataState)
     );
   });
-
-  const clusterOrder = buildClusterOrderMap(state.kpis);
-  state.filtered.sort((a, b) =>
-    compareKpisByClusterThenId(a, b, clusterOrder)
-  );
 
   renderKpis();
 }
@@ -539,32 +450,7 @@ function renderKpis() {
   els.list.innerHTML = "";
   els.resultCount.textContent = `${state.filtered.length} KPI`;
 
-  let currentCluster = null;
-
   state.filtered.forEach(kpi => {
-    const clusterName =
-      kpi.mandates?.cluster || "Belum diklasifikasikan";
-
-    if (clusterName !== currentCluster) {
-      currentCluster = clusterName;
-
-      const clusterHeader = document.createElement("div");
-      clusterHeader.className = "kpi-cluster-heading";
-
-      const countInCluster = state.filtered.filter(
-        item =>
-          (item.mandates?.cluster || "Belum diklasifikasikan") ===
-          clusterName
-      ).length;
-
-      clusterHeader.innerHTML = `
-        <strong>${escapeHtml(clusterName)}</strong>
-        <span>${countInCluster} KPI</span>
-      `;
-
-      els.list.appendChild(clusterHeader);
-    }
-
     const fragment = els.template.content.cloneNode(true);
     const card = fragment.querySelector(".kpi-card");
     const header = fragment.querySelector(".kpi-card-header");
@@ -576,17 +462,8 @@ function renderKpis() {
     fragment.querySelector(".kpi-id").textContent = kpi.id;
     fragment.querySelector(".kpi-type").textContent = formatLabel(kpi.measurement_type);
     fragment.querySelector(".responsibility").textContent = formatLabel(kpi.responsibility);
-
-    const priorityFlag = fragment.querySelector(".project-priority-flag");
-    priorityFlag.textContent = formatPriorityState(kpi);
-    priorityFlag.classList.toggle("flag-priority", Boolean(kpi.is_priority));
-    priorityFlag.classList.toggle("flag-less-priority", !kpi.is_priority);
-
-    const activityState = kpiActivityState(kpi);
-    const activityFlag = fragment.querySelector(".project-activity-flag");
-    activityFlag.textContent = formatActivityState(activityState);
-    activityFlag.classList.add(`flag-${activityState}`);
-
+    fragment.querySelector(".project-priority-flag").textContent = formatPriorityLabel(kpi);
+    fragment.querySelector(".project-activity-flag").textContent = formatProjectStatus(kpiProjectStatus(kpi));
     fragment.querySelector(".kpi-title").textContent = kpi.title;
     fragment.querySelector(".kpi-mandate").textContent =
       `${kpi.mandates?.id || ""} · ${kpi.mandates?.title || "Amanat belum tersedia"}`;
@@ -617,17 +494,10 @@ function renderKpis() {
       const progressValue = metricProgress(metric);
       const readiness = metricReadiness(metric);
 
-      const actualMeta = formatActualMeta(metric);
-      const evidenceLink = metric.public_evidence_url
-        ? `<a class="metric-evidence-link" href="${escapeHtml(metric.public_evidence_url)}" target="_blank" rel="noopener noreferrer">Evidence ↗</a>`
-        : "";
-
       metricEl.innerHTML = `
         <div>
           <strong>${escapeHtml(metric.metric_name)}</strong>
           <small>${escapeHtml(formatLabel(metric.measurement_method))} · ${escapeHtml(metric.target_description || "Target definition TBD")}</small>
-          ${actualMeta ? `<small>${escapeHtml(actualMeta)}</small>` : ""}
-          ${evidenceLink}
         </div>
         <div class="metric-value">
           <strong>${escapeHtml(formatMetricValue(metric))}</strong>
@@ -666,10 +536,7 @@ function escapeHtml(value) {
   els.activityFilter,
   els.dataFilter
 ].forEach(input => {
-  input.addEventListener(
-    input.tagName === "INPUT" ? "input" : "change",
-    applyFilters
-  );
+  input.addEventListener(input.tagName === "INPUT" ? "input" : "change", applyFilters);
 });
 
 els.resetFilters.addEventListener("click", () => {

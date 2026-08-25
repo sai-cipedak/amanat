@@ -131,6 +131,10 @@
         <div class="sai-global-nav-row">
           <nav class="sai-global-nav-links"
                aria-label="Main navigation">
+            <a href="index.html"
+               class="sai-nav-link${activeClass(["index.html",""])}">
+              Public Dashboard
+            </a>
             <a href="volunteer.html"
                class="sai-nav-link${activeClass(["volunteer.html"])}">
               Volunteer Home
