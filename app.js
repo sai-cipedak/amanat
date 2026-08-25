@@ -130,6 +130,42 @@ function kpiDataState(kpi) {
   return kpiProgress(kpi) === null ? "needs_data" : "measured";
 }
 
+
+function isKpiPriority(kpi) {
+  return Boolean(kpi.is_priority);
+}
+
+function kpiProjectStatus(kpi) {
+  const progress = kpiProgress(kpi);
+
+  if (progress !== null && progress >= 100) {
+    return "completed";
+  }
+
+  if (Boolean(kpi.is_active_manual)) {
+    return "active";
+  }
+
+  const hasProgress = (kpi.kpi_metrics || []).some(metric => {
+    const metricValue = metricProgress(metric);
+    return metricValue !== null && metricValue > 0;
+  });
+
+  return hasProgress ? "active" : "not_active";
+}
+
+function formatProjectStatus(status) {
+  if (status === "completed") return "Completed";
+  if (status === "active") return "Active";
+  return "Belum Active";
+}
+
+function formatPriorityLabel(kpi) {
+  return isKpiPriority(kpi)
+    ? "Project Prioritas"
+    : "Less Priority";
+}
+
 function formatDataState(value) {
   return {
     measured: "Measured",
