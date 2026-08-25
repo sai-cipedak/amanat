@@ -50,8 +50,42 @@ button.volunteer-summary-card{font:inherit;cursor:pointer}
 .contributor-progress-modal-card{width:min(820px,100%)}
 @media(max-width:760px){.volunteer-summary-grid{grid-template-columns:1fr}.volunteer-account-row{grid-template-columns:1fr}.volunteer-row-actions{justify-content:flex-start}.volunteer-toolbar{align-items:stretch;flex-direction:column}}
 
+
+/* UAT refinement */
+.project-status-fieldset{
+  margin-top:10px;
+}
+
+.volunteer-summary-card .summary-ratio{
+  display:flex !important;
+  align-items:baseline;
+  gap:4px;
+  white-space:nowrap;
+}
+
+.volunteer-summary-card .summary-ratio > span{
+  display:inline !important;
+  font-size:inherit !important;
+  font-weight:inherit !important;
+  line-height:inherit !important;
+  color:inherit !important;
+}
+
+.ratio-separator{
+  padding:0 1px;
+}
+
+.volunteer-journey-modal-card{
+  width:min(940px,100%);
+}
+
+#applications-modal .volunteer-account-list,
+#active-contributions-modal .volunteer-account-list{
+  margin-top:14px;
+}
+
 </style>
-  <link rel="stylesheet" href="sai-theme.css?v=v1-unified-nav-1" />
+  <link rel="stylesheet" href="sai-theme.css?v=v1-ui-access-2" />
 </head>
 <body>
 <header class="page-header">
@@ -111,57 +145,33 @@ button.volunteer-summary-card{font:inherit;cursor:pointer}
            class="volunteer-account"
            hidden>
     <div class="volunteer-summary-grid">
-      <a href="#my-applications"
-         class="volunteer-summary-card">
-        <span>My Applications</span>
-        <strong id="volunteer-application-count">0</strong>
-        <small id="volunteer-application-note">0 pending</small>
-      </a>
-
       <button id="matched-summary-card"
               class="volunteer-summary-card"
               type="button">
         <span>Matched Opportunities</span>
-        <strong>
-          <span id="volunteer-matched-count">0</span>
-          /
-          <span id="volunteer-open-count">0</span>
+        <strong class="summary-ratio">
+          <span id="volunteer-matched-count">0</span><span class="ratio-separator">/</span><span id="volunteer-open-count">0</span>
         </strong>
         <small>matched / open</small>
       </button>
 
-      <a href="#my-contributions"
-         class="volunteer-summary-card">
+      <button id="application-summary-card"
+              class="volunteer-summary-card"
+              type="button">
+        <span>My Applications</span>
+        <strong id="volunteer-application-count">0</strong>
+        <small id="volunteer-application-note">0 pending</small>
+      </button>
+
+      <button id="active-summary-card"
+              class="volunteer-summary-card"
+              type="button">
         <span>Active Contributions</span>
         <strong id="volunteer-active-count">0</strong>
         <small>currently assigned</small>
-      </a>
+      </button>
     </div>
 
-    <section id="my-applications"
-             class="volunteer-account-panel">
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow">MY VOLUNTEER JOURNEY</p>
-          <h2>My Applications</h2>
-        </div>
-      </div>
-      <div id="volunteer-application-list"
-           class="volunteer-account-list"></div>
-    </section>
-
-    <section id="my-contributions"
-             class="volunteer-account-panel"
-             hidden>
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow">ACTIVE CONTRIBUTOR</p>
-          <h2>My Active Contributions</h2>
-        </div>
-      </div>
-      <div id="volunteer-contribution-list"
-           class="volunteer-account-list"></div>
-    </section>
   </section>
 
   <section id="kpi-filters" class="filter-panel">
@@ -182,7 +192,7 @@ button.volunteer-summary-card{font:inherit;cursor:pointer}
     <div class="section-heading">
       <div><p class="eyebrow">MATCH MY PROFILE</p><h2>Cari opportunity yang cocok buat saya</h2></div>
       <div class="section-actions">
-        <button id="use-profile-button" class="secondary" type="button">Use Profile</button>
+        <button id="use-profile-button" class="secondary" type="button">Use My Profile</button>
         <button id="reset-capacity-filters" class="textbtn" type="button">Reset</button>
       </div>
     </div>
@@ -195,8 +205,17 @@ button.volunteer-summary-card{font:inherit;cursor:pointer}
           <label class="check-row"><input id="capacity-operational" type="checkbox"><span>Operational / Execution</span></label>
           <label class="check-row"><input id="capacity-lead" type="checkbox"><span>Project Lead</span></label>
         </fieldset>
-        <label class="check-row"><input id="capacity-priority" type="checkbox"><span>Prioritas saja</span></label>
-        <label class="check-row"><input id="capacity-active" type="checkbox"><span>Project Active saja</span></label>
+        <fieldset class="project-status-fieldset">
+          <legend>Status Project</legend>
+          <label class="check-row">
+            <input id="capacity-priority" type="checkbox">
+            <span>Prioritas saja</span>
+          </label>
+          <label class="check-row">
+            <input id="capacity-active" type="checkbox">
+            <span>Project Active saja</span>
+          </label>
+        </fieldset>
       </div>
     </div>
   </section>
@@ -207,6 +226,47 @@ button.volunteer-summary-card{font:inherit;cursor:pointer}
   </section>
   <section id="opportunity-list" class="opportunity-list"><div class="loading-card">Loading opportunities…</div></section>
 </main>
+
+
+<div id="applications-modal"
+     class="modal-backdrop"
+     hidden>
+  <section class="modal-card volunteer-journey-modal-card">
+    <div class="modal-heading">
+      <div>
+        <p class="eyebrow">MY VOLUNTEER JOURNEY</p>
+        <h2>My Applications</h2>
+      </div>
+      <button id="applications-modal-close"
+              class="closebtn"
+              type="button">×</button>
+    </div>
+
+    <div id="volunteer-application-list"
+         class="volunteer-account-list"></div>
+  </section>
+</div>
+
+<div id="active-contributions-modal"
+     class="modal-backdrop"
+     hidden>
+  <section class="modal-card volunteer-journey-modal-card">
+    <div class="modal-heading">
+      <div>
+        <p class="eyebrow">ACTIVE CONTRIBUTOR</p>
+        <h2>My Active Contributions</h2>
+      </div>
+      <button id="active-contributions-modal-close"
+              class="closebtn"
+              type="button">×</button>
+    </div>
+
+    <section id="my-contributions">
+      <div id="volunteer-contribution-list"
+           class="volunteer-account-list"></div>
+    </section>
+  </section>
+</div>
 
 <div id="contributor-progress-modal"
      class="modal-backdrop"
@@ -351,7 +411,7 @@ button.volunteer-summary-card{font:inherit;cursor:pointer}
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
-<script src="sai-nav.js?v=v1-unified-nav-1"></script>
-<script src="volunteer.js?v=v1-consolidated-1"></script>
+<script src="sai-nav.js?v=v1-ui-access-2"></script>
+<script src="volunteer.js?v=v1-ui-access-2"></script>
 </body>
 </html>

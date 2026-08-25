@@ -62,6 +62,12 @@ const els = {
   volunteerOpenCount:$("volunteer-open-count"),
   volunteerActiveCount:$("volunteer-active-count"),
   matchedSummaryCard:$("matched-summary-card"),
+  applicationSummaryCard:$("application-summary-card"),
+  activeSummaryCard:$("active-summary-card"),
+  applicationsModal:$("applications-modal"),
+  applicationsModalClose:$("applications-modal-close"),
+  activeContributionsModal:$("active-contributions-modal"),
+  activeContributionsModalClose:$("active-contributions-modal-close"),
   volunteerApplicationList:$("volunteer-application-list"),
   myContributions:$("my-contributions"),
   volunteerContributionList:$("volunteer-contribution-list"),
@@ -335,10 +341,14 @@ function activeContributions(){
 
 function renderVolunteerContributions(){
   const contributions=activeContributions();
-  els.myContributions.hidden=!contributions.length;
+  els.myContributions.hidden=false;
 
   if(!contributions.length){
-    els.volunteerContributionList.innerHTML="";
+    els.volunteerContributionList.innerHTML=`
+      <div class="empty-card">
+        Belum ada active contribution. Application yang sudah disetujui
+        Metric Owner akan muncul di sini.
+      </div>`;
     return;
   }
 
@@ -867,6 +877,35 @@ els.joinForm.onsubmit=async e=>{e.preventDefault();message(els.joinMessage,"Subm
 els.exploreMore.onclick=()=>els.thankModal.hidden=true;
 els.imDone.onclick=()=>location.href="volunteer.html";
 
+
+
+els.applicationSummaryCard.onclick=()=>{
+  els.applicationsModal.hidden=false;
+};
+
+els.applicationsModalClose.onclick=()=>{
+  els.applicationsModal.hidden=true;
+};
+
+els.applicationsModal.addEventListener("click",event=>{
+  if(event.target===els.applicationsModal){
+    els.applicationsModal.hidden=true;
+  }
+});
+
+els.activeSummaryCard.onclick=()=>{
+  els.activeContributionsModal.hidden=false;
+};
+
+els.activeContributionsModalClose.onclick=()=>{
+  els.activeContributionsModal.hidden=true;
+};
+
+els.activeContributionsModal.addEventListener("click",event=>{
+  if(event.target===els.activeContributionsModal){
+    els.activeContributionsModal.hidden=true;
+  }
+});
 
 els.matchedSummaryCard.onclick=async()=>{
   state.mode="capacity";

@@ -1258,3 +1258,15 @@ textarea:focus{
   min-height:0;
 }
 
+
+
+/* v1 role-scoped My Metrics */
+.badge.admin-scope{
+  background:rgba(13,69,180,.10);
+  color:#0D45B4;
+}
+
+.badge.reviewer-scope{
+  background:rgba(21,88,154,.10);
+  color:#15589A;
+}

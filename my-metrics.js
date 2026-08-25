@@ -11,6 +11,7 @@ const MODE_LABELS = {
 
 const state = {
   session: null,
+  metricsAccess: null,
   rows: [],
   selectedMetricId: null,
   updateHistory: [],
@@ -221,9 +222,21 @@ function setMessage(text, type = "") {
 }
 
 function ownerRoleLabel(role) {
-  return role === "primary_owner"
-    ? "Primary Owner"
-    : "Supporting Owner";
+  return {
+    primary_owner: "Primary Owner",
+    supporting_owner: "Supporting Owner",
+    admin_scope: "Admin Access",
+    reviewer_scope: "Cluster Reviewer"
+  }[role] || "Metric Access";
+}
+
+function isOwnerRole(role) {
+  return ["primary_owner","supporting_owner"].includes(role);
+}
+
+function canManageWorkspaceRow(row) {
+  return isOwnerRole(row.owner_role) ||
+    row.owner_role === "admin_scope";
 }
 
 function numberOrDash(value, unit = "") {
@@ -331,6 +344,24 @@ async function loadPendingContributorUpdateCounts() {
   );
 }
 
+
+async function loadMetricsAccess() {
+  const { data, error } = await myMetricsSupabase.rpc(
+    "get_my_metrics_access"
+  );
+
+  if (error) throw error;
+
+  state.metricsAccess =
+    Array.isArray(data) && data.length
+      ? data[0]
+      : {
+          can_access:false,
+          access_scope:"none",
+          role_label:"Volunteer"
+        };
+}
+
 async function loadWorkspace() {
   const { data, error } = await myMetricsSupabase.rpc(
     "get_my_metric_workspace"
@@ -358,11 +389,15 @@ function renderSession() {
 }
 
 function renderSummary() {
-  const primary = state.rows.filter(
+  const ownedRows = state.rows.filter(
+    row => isOwnerRole(row.owner_role)
+  );
+
+  const primary = ownedRows.filter(
     row => row.owner_role === "primary_owner"
   ).length;
 
-  const pendingOwner = state.rows.reduce(
+  const pendingOwner = ownedRows.reduce(
     (sum, row) =>
       sum + Number(row.pending_applications || 0),
     0
@@ -392,7 +427,7 @@ function renderSummary() {
   // Owner-specific cards only appear when the capability exists.
   els.metricCountCard.hidden = state.rows.length === 0;
   els.primaryCountCard.hidden = primary === 0;
-  els.pendingOwnerCard.hidden = state.rows.length === 0;
+  els.pendingOwnerCard.hidden = ownedRows.length === 0;
 
   // Pure volunteers should not see an empty owner-management shell.
   els.ownerWorkspacePanel.hidden = state.rows.length === 0;
@@ -2383,7 +2418,11 @@ function renderRows() {
               <span class="badge ${
                 row.owner_role === "primary_owner"
                   ? "primary"
-                  : "supporting"
+                  : row.owner_role === "supporting_owner"
+                    ? "supporting"
+                    : row.owner_role === "admin_scope"
+                      ? "admin-scope"
+                      : "reviewer-scope"
               }">
                 ${esc(ownerRoleLabel(row.owner_role))}
               </span>
@@ -2493,85 +2532,110 @@ function renderRows() {
         </div>
 
         <div class="metric-actions">
-          <span class="readonly-note">
-            Progress update masuk sebagai Draft dan tetap memerlukan verification.
-          </span>
-
           ${
-            row.opportunity_id &&
-            row.opportunity_status === "open"
-              ? `<a class="secondary-button metric-action-button"
-                    href="volunteer.html?mode=kpi&opportunity=${encodeURIComponent(row.opportunity_id)}">
-                   Public Opportunity
-                 </a>`
-              : ""
-          }
+            canManageWorkspaceRow(row)
+              ? `
+                <span class="readonly-note">
+                  Progress update masuk sebagai Draft dan tetap memerlukan verification.
+                </span>
 
-          <button class="secondary-button metric-action-button"
-                  type="button"
-                  data-contributor-updates="${esc(row.metric_id)}">
-            Contributor Updates
-            ${
-              Number(state.pendingContributorUpdateCounts[row.metric_id] || 0) > 0
-                ? `<span class="application-count-badge">
-                     ${Number(state.pendingContributorUpdateCounts[row.metric_id] || 0)}
-                   </span>`
-                : ""
-            }
-          </button>
+                ${
+                  row.opportunity_id &&
+                  row.opportunity_status === "open"
+                    ? `<a class="secondary-button metric-action-button"
+                          href="volunteer.html?mode=kpi&opportunity=${encodeURIComponent(row.opportunity_id)}">
+                         Public Opportunity
+                       </a>`
+                    : ""
+                }
 
-          <button class="secondary-button metric-action-button"
-                  type="button"
-                  data-review-applications="${esc(row.metric_id)}">
-            ${
-              row.owner_role === "primary_owner"
-                ? "Review Applicants"
-                : "View Applicants"
-            }
-            ${
-              Number(row.pending_applications||0)>0
-                ? `<span class="application-count-badge">
-                     ${Number(row.pending_applications||0)}
-                   </span>`
-                : ""
-            }
-          </button>
-
-          <button class="secondary-button metric-action-button"
-                  type="button"
-                  data-share-opportunity="${esc(row.metric_id)}"
+                <button class="secondary-button metric-action-button"
+                        type="button"
+                        data-contributor-updates="${esc(row.metric_id)}">
+                  Contributor Updates
                   ${
-                    !row.opportunity_id ||
-                    ["closed","filled"].includes(row.opportunity_status)
-                      ? "disabled"
+                    Number(state.pendingContributorUpdateCounts[row.metric_id] || 0) > 0
+                      ? `<span class="application-count-badge">
+                           ${Number(state.pendingContributorUpdateCounts[row.metric_id] || 0)}
+                         </span>`
                       : ""
-                  }>
-            ${
-              row.opportunity_status === "open"
-                ? "Share Opportunity"
-                : row.opportunity_status === "paused"
-                  ? "Resume & Share"
-                  : "Publish & Share"
-            }
-          </button>
+                  }
+                </button>
 
-          <button class="secondary-button metric-action-button"
-                  type="button"
-                  data-manage-opportunity="${esc(row.metric_id)}">
-            Manage Opportunity
-          </button>
+                <button class="secondary-button metric-action-button"
+                        type="button"
+                        data-review-applications="${esc(row.metric_id)}">
+                  ${
+                    row.owner_role === "primary_owner"
+                      ? "Review Applicants"
+                      : "View Applicants"
+                  }
+                  ${
+                    Number(row.pending_applications||0)>0
+                      ? `<span class="application-count-badge">
+                           ${Number(row.pending_applications||0)}
+                         </span>`
+                      : ""
+                  }
+                </button>
 
-          <button class="secondary-button metric-action-button"
-                  type="button"
-                  data-manage-skills="${esc(row.metric_id)}">
-            Manage Skills
-          </button>
+                <button class="secondary-button metric-action-button"
+                        type="button"
+                        data-share-opportunity="${esc(row.metric_id)}"
+                        ${
+                          !row.opportunity_id ||
+                          ["closed","filled"].includes(row.opportunity_status)
+                            ? "disabled"
+                            : ""
+                        }>
+                  ${
+                    row.opportunity_status === "open"
+                      ? "Share Opportunity"
+                      : row.opportunity_status === "paused"
+                        ? "Resume & Share"
+                        : "Publish & Share"
+                  }
+                </button>
 
-          <button class="primary-button metric-action-button"
-                  type="button"
-                  data-update-progress="${esc(row.metric_id)}">
-            Update Progress
-          </button>
+                <button class="secondary-button metric-action-button"
+                        type="button"
+                        data-manage-opportunity="${esc(row.metric_id)}">
+                  Manage Opportunity
+                </button>
+
+                <button class="secondary-button metric-action-button"
+                        type="button"
+                        data-manage-skills="${esc(row.metric_id)}">
+                  Manage Skills
+                </button>
+
+                <button class="primary-button metric-action-button"
+                        type="button"
+                        data-update-progress="${esc(row.metric_id)}">
+                  Update Progress
+                </button>
+              `
+              : `
+                <span class="readonly-note">
+                  Reviewer view only. Review / Verify progress dilakukan melalui KPI Admin.
+                </span>
+
+                ${
+                  row.opportunity_id &&
+                  row.opportunity_status === "open"
+                    ? `<a class="secondary-button metric-action-button"
+                          href="volunteer.html?mode=kpi&opportunity=${encodeURIComponent(row.opportunity_id)}">
+                         Public Opportunity
+                       </a>`
+                    : ""
+                }
+
+                <a class="secondary-button metric-action-button"
+                   href="admin.html">
+                  Open KPI Admin
+                </a>
+              `
+          }
         </div>
       </article>
     `;
@@ -2662,6 +2726,13 @@ async function enterWorkspace(session) {
   try {
     // Email-first ownership assignment becomes UID-bound here.
     await claimOwnership();
+    await loadMetricsAccess();
+
+    if (!state.metricsAccess?.can_access) {
+      location.replace("volunteer.html");
+      return;
+    }
+
     await Promise.all([
       loadWorkspace(),
       loadSkillCatalog(),
@@ -2690,6 +2761,7 @@ async function enterWorkspace(session) {
 
 async function exitWorkspace() {
   state.session = null;
+  state.metricsAccess = null;
   state.rows = [];
   state.myApplications = [];
   state.volunteerSummary = null;

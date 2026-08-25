@@ -969,3 +969,114 @@ body > header .sai-nav-cta:hover{
     text-align:left;
   }
 }
+
+
+/* ============================================================
+   v1.0 Access/Nav refinement
+   - one-line desktop menu
+   - KPI Admin in same line
+   - Sign out rightmost
+   - user name + effective role below, right aligned
+   ============================================================ */
+
+.sai-global-nav{
+  display:flex;
+  justify-content:flex-end;
+  min-width:0;
+  width:auto;
+}
+
+.sai-global-nav-row{
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:flex-end !important;
+  justify-content:flex-start !important;
+  gap:5px !important;
+  width:auto !important;
+}
+
+.sai-global-nav-links{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:flex-end !important;
+  flex-wrap:nowrap !important;
+  gap:4px !important;
+  width:auto !important;
+  white-space:nowrap;
+}
+
+.sai-global-user{
+  display:flex !important;
+  align-items:baseline !important;
+  justify-content:flex-end !important;
+  gap:6px !important;
+  padding-top:0 !important;
+  width:100%;
+  text-align:right !important;
+  line-height:1.1 !important;
+}
+
+.sai-global-user strong{
+  font-size:10px !important;
+  color:#111 !important;
+}
+
+.sai-global-user span{
+  font-size:9px !important;
+  color:#6B747D !important;
+}
+
+.sai-signout-button{
+  border-color:transparent !important;
+  background:transparent !important;
+  box-shadow:none !important;
+}
+
+.sai-signout-button:hover{
+  border-color:#D5E0E9 !important;
+  background:rgba(21,88,154,.05) !important;
+  color:var(--sai-cobalt) !important;
+}
+
+.sai-admin-dropdown{
+  flex:0 0 auto;
+}
+
+.sai-admin-dropdown > summary{
+  min-height:36px;
+}
+
+@media(max-width:900px){
+  .sai-global-nav{
+    width:100%;
+  }
+
+  .sai-global-nav-row{
+    align-items:stretch !important;
+    width:100% !important;
+  }
+
+  .sai-global-nav-links{
+    overflow-x:auto;
+    justify-content:flex-start !important;
+    padding-bottom:2px;
+  }
+
+  .sai-global-user{
+    justify-content:flex-start !important;
+    text-align:left !important;
+  }
+}
+
+@media(max-width:620px){
+  .sai-global-nav-links{
+    display:flex !important;
+    grid-template-columns:none !important;
+  }
+
+  .sai-global-nav-links > .sai-nav-link,
+  .sai-global-nav-links > .sai-admin-dropdown{
+    width:auto !important;
+    flex:0 0 auto;
+  }
+}

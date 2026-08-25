@@ -9,17 +9,15 @@
     SUPABASE_PUBLISHABLE_KEY
   );
 
-  const currentPage = () => {
-    const name = (location.pathname.split("/").pop() || "index.html").toLowerCase();
-    return name || "index.html";
-  };
+  const currentPage = () =>
+    (location.pathname.split("/").pop() || "index.html").toLowerCase();
 
   const esc = value => String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
 
   const activeClass = pages =>
     pages.includes(currentPage()) ? " is-current" : "";
@@ -34,6 +32,26 @@
     }
   }
 
+  async function metricsAccess() {
+    try {
+      const { data, error } = await navDb.rpc("get_my_metrics_access");
+      if (error || !Array.isArray(data) || !data.length) {
+        return {
+          can_access:false,
+          access_scope:"none",
+          role_label:null
+        };
+      }
+      return data[0];
+    } catch (_) {
+      return {
+        can_access:false,
+        access_scope:"none",
+        role_label:null
+      };
+    }
+  }
+
   async function displayIdentity(user) {
     let name =
       user?.user_metadata?.full_name ||
@@ -44,26 +62,33 @@
       const { data } = await navDb
         .from("volunteer_profiles")
         .select("display_name")
-        .eq("user_id", user.id)
+        .eq("user_id",user.id)
         .maybeSingle();
 
-      if (data?.display_name) name = data.display_name;
+      if (data?.display_name) name=data.display_name;
     } catch (_) {}
 
     return {
-      name: name || user.email || "Google User",
-      email: user.email || ""
+      name:name || user.email || "Google User"
     };
   }
 
-  function adminMenu(role) {
-    if (!["admin", "editor", "reviewer"].includes(role)) return "";
+  function resolvedRoleLabel(role,access) {
+    if (access?.role_label) return access.role_label;
+    if (role==="admin") return "Admin";
+    if (role==="reviewer") return "Cluster Lead · Reviewer";
+    if (role==="editor") return "Editor";
+    return "Volunteer";
+  }
 
-    const items = [
+  function adminMenu(role) {
+    if (!["admin","editor","reviewer"].includes(role)) return "";
+
+    const items=[
       `<a href="admin.html"${activeClass(["admin.html"])}>KPI Admin</a>`
     ];
 
-    if (["admin", "editor"].includes(role)) {
+    if (["admin","editor"].includes(role)) {
       items.push(
         `<a href="volunteer-admin.html"${activeClass(["volunteer-admin.html"])}>Volunteer Admin</a>`
       );
@@ -82,28 +107,30 @@
   }
 
   async function signIn() {
-    const redirectTo = location.href;
     const { error } = await navDb.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo }
+      provider:"google",
+      options:{redirectTo:location.href}
     });
     if (error) window.alert(error.message);
   }
 
   async function signOut() {
-    const { error } = await navDb.auth.signOut({ scope: "local" });
+    const { error } = await navDb.auth.signOut({scope:"local"});
     if (error) {
       window.alert(error.message);
       return;
     }
-    await render(null);
+
+    // Locked UAT behavior: every sign-out lands on Public Dashboard.
+    location.replace("index.html");
   }
 
   async function render(session) {
     if (!session?.user) {
-      root.innerHTML = `
+      root.innerHTML=`
         <div class="sai-global-nav-row">
-          <nav class="sai-global-nav-links" aria-label="Main navigation">
+          <nav class="sai-global-nav-links"
+               aria-label="Main navigation">
             <a href="volunteer.html"
                class="sai-nav-link${activeClass(["volunteer.html"])}">
               Volunteer Home
@@ -118,23 +145,29 @@
       `;
 
       root.querySelector("[data-sai-login]")
-        ?.addEventListener("click", signIn);
+        ?.addEventListener("click",signIn);
       return;
     }
 
-    const [role, identity] = await Promise.all([
+    const [role,access,identity]=await Promise.all([
       effectiveRole(),
+      metricsAccess(),
       displayIdentity(session.user)
     ]);
 
-    root.innerHTML = `
-      <div class="sai-global-nav-row">
-        <div class="sai-global-user">
-          <strong>${esc(identity.name)}</strong>
-          <span>${esc(identity.email)}</span>
-        </div>
+    const myMetricsLink=access?.can_access
+      ? `
+        <a href="my-metrics.html"
+           class="sai-nav-link${activeClass(["my-metrics.html"])}">
+          My Metrics
+        </a>
+      `
+      : "";
 
-        <nav class="sai-global-nav-links" aria-label="Main navigation">
+    root.innerHTML=`
+      <div class="sai-global-nav-row">
+        <nav class="sai-global-nav-links"
+             aria-label="Main navigation">
           <a href="index.html"
              class="sai-nav-link${activeClass(["index.html",""])}">
             Public Dashboard
@@ -145,31 +178,33 @@
             Volunteer Home
           </a>
 
-          <a href="my-metrics.html"
-             class="sai-nav-link${activeClass(["my-metrics.html"])}">
-            My Metrics
-          </a>
+          ${myMetricsLink}
+
+          ${adminMenu(role)}
 
           <button type="button"
-                  class="sai-nav-link sai-nav-button"
+                  class="sai-nav-link sai-nav-button sai-signout-button"
                   data-sai-logout>
             Sign out
           </button>
-
-          ${adminMenu(role)}
         </nav>
+
+        <div class="sai-global-user">
+          <strong>${esc(identity.name)}</strong>
+          <span>${esc(resolvedRoleLabel(role,access))}</span>
+        </div>
       </div>
     `;
 
     root.querySelector("[data-sai-logout]")
-      ?.addEventListener("click", signOut);
+      ?.addEventListener("click",signOut);
   }
 
-  navDb.auth.onAuthStateChange((_event, session) => {
+  navDb.auth.onAuthStateChange((_event,session)=>{
     render(session);
   });
 
   navDb.auth.getSession()
-    .then(({ data }) => render(data.session))
-    .catch(() => render(null));
+    .then(({data})=>render(data.session))
+    .catch(()=>render(null));
 })();

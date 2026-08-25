@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="robots" content="noindex,nofollow" />
   <title>My Metrics · SAI Cipedak</title>
-  <link rel="stylesheet" href="my-metrics.css?v=v1-contrib-1" />
-  <link rel="stylesheet" href="sai-theme.css?v=v1-unified-nav-1" />
+  <link rel="stylesheet" href="my-metrics.css?v=v1-ui-access-2" />
+  <link rel="stylesheet" href="sai-theme.css?v=v1-ui-access-2" />
 </head>
 
 <body>
@@ -17,10 +17,10 @@
              alt="Sekolah Alam Indonesia"
              class="sai-brand-logo" />
         <div class="sai-page-identity">
-          <p class="eyebrow">SAI CIPEDAK · METRIC OWNER</p>
+          <p class="eyebrow">SAI CIPEDAK · METRIC WORKSPACE</p>
           <h1>My Metrics</h1>
           <p class="header-copy">
-            Kelola metric yang menjadi tanggung jawab Anda.
+            Lihat dan kelola metric sesuai scope akses Anda.
           </p>
           <span class="sai-accent-rule" aria-hidden="true"></span>
         </div>
@@ -47,11 +47,11 @@
   <main class="shell main-shell" data-build="V1-CONTRIBUTOR-PROGRESS-1">
 
     <section id="login-panel" class="auth-card">
-      <p class="eyebrow">METRIC OWNER ACCESS</p>
+      <p class="eyebrow">METRIC WORKSPACE ACCESS</p>
       <h2>Login diperlukan</h2>
       <p class="muted">
         Gunakan menu <strong>Log-in</strong> di kanan atas.
-        Setelah login, metric yang diassign ke akun Anda akan muncul di sini.
+        Setelah login, metric akan ditampilkan sesuai role dan assignment Anda.
       </p>
       <button id="google-login-button"
               type="button"
@@ -153,13 +153,12 @@
       <section id="owner-workspace-panel" class="panel">
         <div class="section-heading">
           <div>
-            <p class="eyebrow">OWNER WORKSPACE</p>
-            <h2>Metric yang Anda pegang</h2>
+            <p class="eyebrow">METRIC WORKSPACE</p>
+            <h2>Metrics in Scope</h2>
           </div>
 
           <p class="muted">
-            Kelola progress, skill requirement, volunteer opportunity,
-            dan applicant untuk metric yang menjadi tanggung jawab Anda.
+            Admin melihat seluruh metric; Cluster Lead melihat metric dalam clusternya; Metric Owner melihat metric yang diassign.
           </p>
         </div>
 
@@ -177,6 +176,8 @@
               <option value="">Semua ownership</option>
               <option value="primary_owner">Primary Owner</option>
               <option value="supporting_owner">Supporting Owner</option>
+              <option value="admin_scope">Admin Access</option>
+              <option value="reviewer_scope">Cluster Reviewer</option>
             </select>
           </label>
 
@@ -963,7 +964,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
-  <script src="sai-nav.js?v=v1-unified-nav-1"></script>
-  <script src="my-metrics.js?v=v1-owner-focus-1"></script>
+  <script src="sai-nav.js?v=v1-ui-access-2"></script>
+  <script src="my-metrics.js?v=v1-ui-access-2"></script>
 </body>
 </html>
