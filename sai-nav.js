@@ -12,6 +12,47 @@
   const currentPage = () =>
     (location.pathname.split("/").pop() || "index.html").toLowerCase();
 
+
+  function syncHeaderLogoHeight() {
+    const logo = document.querySelector(".sai-brand-logo");
+    const identity = document.querySelector(".sai-page-identity");
+
+    if (!logo || !identity) return;
+
+    const identityHeight = Math.ceil(
+      identity.getBoundingClientRect().height
+    );
+
+    if (!identityHeight) return;
+
+    // Keep the logo exactly aligned with the visible identity block.
+    // Width remains automatic so the original logo ratio is preserved.
+    logo.style.setProperty(
+      "--sai-logo-height",
+      `${identityHeight}px`
+    );
+    logo.style.width = "auto";
+  }
+
+  function watchHeaderLogoHeight() {
+    syncHeaderLogoHeight();
+
+    const identity = document.querySelector(".sai-page-identity");
+
+    if (identity && typeof ResizeObserver !== "undefined") {
+      const observer = new ResizeObserver(() => {
+        syncHeaderLogoHeight();
+      });
+      observer.observe(identity);
+    }
+
+    window.addEventListener(
+      "resize",
+      syncHeaderLogoHeight,
+      { passive: true }
+    );
+  }
+
   const esc = value => String(value ?? "")
     .replaceAll("&","&amp;")
     .replaceAll("<","&lt;")
@@ -203,6 +244,8 @@
     root.querySelector("[data-sai-logout]")
       ?.addEventListener("click",signOut);
   }
+
+  watchHeaderLogoHeight();
 
   navDb.auth.onAuthStateChange((_event,session)=>{
     render(session);

@@ -93,8 +93,11 @@ body > header {
 
 .sai-brand-logo {
   display: block;
-  width: 190px;
-  height: auto;
+  height: var(--sai-logo-height, auto) !important;
+  width: auto !important;
+  max-width: none !important;
+  max-height: none !important;
+  object-fit: contain;
   flex: 0 0 auto;
 }
 
@@ -548,7 +551,7 @@ footer {
   }
 
   .sai-brand-logo {
-    width: 150px;
+    width: auto !important;
   }
 
   .sai-page-identity {
@@ -579,7 +582,7 @@ footer {
   }
 
   .sai-brand-logo {
-    width: 118px;
+    width: auto !important;
   }
 
   .sai-page-identity {
@@ -1080,3 +1083,13 @@ body > header .sai-nav-cta:hover{
     flex:0 0 auto;
   }
 }
+
+
+
+
+/* Release 1.0.3 — adaptive header logo
+   Height is synchronized to the actual text identity block by sai-nav.js. */
+.sai-brand-logo {
+  transition: height 120ms ease;
+}
+
