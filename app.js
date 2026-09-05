@@ -262,6 +262,50 @@ function formatDate(dateString) {
   }).format(d);
 }
 
+function numericKpiKey(id) {
+  const match = String(id || "").match(/^AM(\d+)-K(\d+)$/i);
+  if (!match) return [9999, 9999];
+  return [Number(match[1]), Number(match[2])];
+}
+
+function buildClusterOrderMap(kpis) {
+  const order = new Map();
+
+  kpis.forEach(kpi => {
+    const cluster = kpi.mandates?.cluster || "Belum diklasifikasikan";
+    const mandateOrder = Number(kpi.mandates?.sort_order ?? 9999);
+
+    if (!order.has(cluster) || mandateOrder < order.get(cluster)) {
+      order.set(cluster, mandateOrder);
+    }
+  });
+
+  return order;
+}
+
+function compareKpisByClusterThenId(a, b, clusterOrder) {
+  const clusterA = a.mandates?.cluster || "Belum diklasifikasikan";
+  const clusterB = b.mandates?.cluster || "Belum diklasifikasikan";
+
+  const rankA = clusterOrder.get(clusterA) ?? 9999;
+  const rankB = clusterOrder.get(clusterB) ?? 9999;
+
+  if (rankA !== rankB) return rankA - rankB;
+
+  const clusterCompare = clusterA.localeCompare(clusterB, "id");
+  if (clusterCompare !== 0 && rankA === rankB) {
+    return clusterCompare;
+  }
+
+  const [amA, kA] = numericKpiKey(a.id);
+  const [amB, kB] = numericKpiKey(b.id);
+
+  if (amA !== amB) return amA - amB;
+  if (kA !== kB) return kA - kB;
+
+  return String(a.id).localeCompare(String(b.id), "id");
+}
+
 async function loadData() {
   try {
     const kpiPromise = supabaseClient
@@ -534,6 +578,9 @@ function applyFilters() {
     );
   });
 
+  const clusterOrder = buildClusterOrderMap(state.kpis);
+  state.filtered.sort((a, b) => compareKpisByClusterThenId(a, b, clusterOrder));
+
   renderKpis();
 }
 
@@ -541,7 +588,28 @@ function renderKpis() {
   els.list.innerHTML = "";
   els.resultCount.textContent = `${state.filtered.length} KPI`;
 
+  let currentCluster = null;
+  const clusterCounts = new Map();
   state.filtered.forEach(kpi => {
+    const cluster = kpi.mandates?.cluster || "Belum diklasifikasikan";
+    clusterCounts.set(cluster, (clusterCounts.get(cluster) || 0) + 1);
+  });
+
+  state.filtered.forEach(kpi => {
+    const cluster = kpi.mandates?.cluster || "Belum diklasifikasikan";
+    if (cluster !== currentCluster) {
+      currentCluster = cluster;
+      const heading = document.createElement("div");
+      heading.className = "section-heading kpi-cluster-heading";
+      const title = document.createElement("h2");
+      title.textContent = cluster;
+      const count = document.createElement("span");
+      count.className = "result-count";
+      count.textContent = `${clusterCounts.get(cluster)} KPI`;
+      heading.append(title, count);
+      els.list.appendChild(heading);
+    }
+
     const fragment = els.template.content.cloneNode(true);
     const card = fragment.querySelector(".kpi-card");
     const header = fragment.querySelector(".kpi-card-header");
