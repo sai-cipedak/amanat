@@ -1,67 +1,101 @@
 (() => {
-  const root = document.querySelector("[data-sai-global-nav]");
-  if (!root || typeof supabase === "undefined") return;
+  if (typeof supabase === "undefined") return;
   if (typeof SUPABASE_URL === "undefined" ||
       typeof SUPABASE_PUBLISHABLE_KEY === "undefined") return;
+
+  const header = document.querySelector(
+    "header .header-inner, header .topbar-inner, header .head"
+  );
+
+  if (!header) return;
 
   const navDb = supabase.createClient(
     SUPABASE_URL,
     SUPABASE_PUBLISHABLE_KEY
   );
 
-  const currentPage = () =>
+  const PAGE_CONTEXT = {
+    "index.html": "Amanat Muskom 2026 · KPI Tracker",
+    "volunteer.html": "Volunteer Marketplace",
+    "my-metrics.html": "Metric Workspace",
+    "admin.html": "KPI Admin",
+    "volunteer-admin.html": "Volunteer Admin"
+  };
+
+  const currentPage =
     (location.pathname.split("/").pop() || "index.html").toLowerCase();
 
+  function installShellStyles() {
+    if (document.querySelector("link[data-sai-shell]")) return;
 
-  function syncHeaderLogoHeight() {
-    const logo = document.querySelector(".sai-brand-logo");
-    const identity = document.querySelector(".sai-page-identity");
-
-    if (!logo || !identity) return;
-
-    const identityHeight = Math.ceil(
-      identity.getBoundingClientRect().height
-    );
-
-    if (!identityHeight) return;
-
-    // Keep the logo exactly aligned with the visible identity block.
-    // Width remains automatic so the original logo ratio is preserved.
-    logo.style.setProperty(
-      "--sai-logo-height",
-      `${identityHeight}px`
-    );
-    logo.style.width = "auto";
+    const style = document.createElement("link");
+    style.rel = "stylesheet";
+    style.href = "sai-shell.css?v=20260907-1";
+    style.dataset.saiShell = "1";
+    document.head.append(style);
   }
 
-  function watchHeaderLogoHeight() {
-    syncHeaderLogoHeight();
+  function pageContext() {
+    return PAGE_CONTEXT[currentPage] || "KPI Tracker";
+  }
 
-    const identity = document.querySelector(".sai-page-identity");
+  function installBrand() {
+    const existing = header.querySelector(".sai-brand-block");
+    if (!existing) return;
 
-    if (identity && typeof ResizeObserver !== "undefined") {
-      const observer = new ResizeObserver(() => {
-        syncHeaderLogoHeight();
-      });
-      observer.observe(identity);
+    const brand = document.createElement("a");
+    brand.className = "sai-shell-brand";
+    brand.href = "index.html";
+    brand.setAttribute("aria-label", "Gerak SAI - Public Dashboard");
+
+    const mark = document.createElement("span");
+    mark.className = "sai-shell-mark";
+
+    const logo = document.createElement("img");
+    logo.src = "sai-logo-web.png?v=1.0.3";
+    logo.alt = "";
+    logo.setAttribute("aria-hidden", "true");
+    mark.append(logo);
+
+    const words = document.createElement("span");
+    words.className = "sai-shell-brand-copy";
+
+    const title = document.createElement("strong");
+    title.textContent = "Gerak SAI";
+
+    const context = document.createElement("small");
+    context.textContent = pageContext();
+
+    words.append(title, context);
+    brand.append(mark, words);
+    existing.replaceWith(brand);
+  }
+
+  function hideLegacyHeaderUi() {
+    for (const node of header.querySelectorAll(
+      ".header-actions, .topbar-actions, .head-actions"
+    )) {
+      node.classList.add("sai-shell-legacy-header");
+    }
+  }
+
+  function isPageActive(href) {
+    return currentPage === href ||
+      (currentPage === "" && href === "index.html");
+  }
+
+  function navLink(label, href) {
+    const link = document.createElement("a");
+    link.className = "sai-shell-nav-link";
+    link.href = href;
+    link.textContent = label;
+
+    if (isPageActive(href)) {
+      link.setAttribute("aria-current", "page");
     }
 
-    window.addEventListener(
-      "resize",
-      syncHeaderLogoHeight,
-      { passive: true }
-    );
+    return link;
   }
-
-  const esc = value => String(value ?? "")
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
-
-  const activeClass = pages =>
-    pages.includes(currentPage()) ? " is-current" : "";
 
   async function effectiveRole() {
     try {
@@ -76,182 +110,173 @@
   async function metricsAccess() {
     try {
       const { data, error } = await navDb.rpc("get_my_metrics_access");
+
       if (error || !Array.isArray(data) || !data.length) {
-        return {
-          can_access:false,
-          access_scope:"none",
-          role_label:null
-        };
+        return { can_access: false };
       }
+
       return data[0];
     } catch (_) {
-      return {
-        can_access:false,
-        access_scope:"none",
-        role_label:null
-      };
+      return { can_access: false };
     }
   }
 
-  async function displayIdentity(user) {
-    let name =
-      user?.user_metadata?.full_name ||
-      user?.user_metadata?.name ||
-      "";
+  function authError(account, message) {
+    const status = account.querySelector(".sai-shell-auth-status");
+    if (!status) return;
 
-    try {
-      const { data } = await navDb
-        .from("volunteer_profiles")
-        .select("display_name")
-        .eq("user_id",user.id)
-        .maybeSingle();
-
-      if (data?.display_name) name=data.display_name;
-    } catch (_) {}
-
-    return {
-      name:name || user.email || "Google User"
-    };
+    status.textContent = message || "";
+    status.hidden = !message;
   }
 
-  function resolvedRoleLabel(role,access) {
-    if (access?.role_label) return access.role_label;
-    if (role==="admin") return "Admin";
-    if (role==="reviewer") return "Cluster Lead · Reviewer";
-    if (role==="editor") return "Editor";
-    return "Volunteer";
-  }
+  async function signIn(button, account) {
+    button.disabled = true;
+    authError(account, "");
 
-  function adminMenu(role) {
-    if (!["admin","editor","reviewer"].includes(role)) return "";
-
-    const items=[
-      `<a href="admin.html"${activeClass(["admin.html"])}>KPI Admin</a>`
-    ];
-
-    if (["admin","editor"].includes(role)) {
-      items.push(
-        `<a href="volunteer-admin.html"${activeClass(["volunteer-admin.html"])}>Volunteer Admin</a>`
-      );
-    }
-
-    return `
-      <details class="sai-admin-dropdown">
-        <summary class="sai-nav-link${activeClass(["admin.html","volunteer-admin.html"])}">
-          KPI Admin
-        </summary>
-        <div class="sai-admin-dropdown-menu">
-          ${items.join("")}
-        </div>
-      </details>
-    `;
-  }
-
-  async function signIn() {
     const { error } = await navDb.auth.signInWithOAuth({
-      provider:"google",
-      options:{redirectTo:location.href}
+      provider: "google",
+      options: {
+        redirectTo: location.href.split("#")[0]
+      }
     });
-    if (error) window.alert(error.message);
+
+    if (error) {
+      button.disabled = false;
+      authError(account, error.message || "Login belum dapat dimulai.");
+    }
   }
 
-  async function signOut() {
-    const { error } = await navDb.auth.signOut({scope:"local"});
+  async function signOut(button, account) {
+    button.disabled = true;
+    authError(account, "");
+
+    const { error } = await navDb.auth.signOut({ scope: "local" });
+
     if (error) {
-      window.alert(error.message);
+      button.disabled = false;
+      authError(account, error.message || "Belum dapat keluar. Coba lagi.");
       return;
     }
 
-    // Locked UAT behavior: every sign-out lands on Public Dashboard.
     location.replace("index.html");
   }
 
-  async function render(session) {
-    if (!session?.user) {
-      root.innerHTML=`
-        <div class="sai-global-nav-row">
-          <nav class="sai-global-nav-links"
-               aria-label="Main navigation">
-            <a href="index.html"
-               class="sai-nav-link${activeClass(["index.html",""])}">
-              Public Dashboard
-            </a>
-            <a href="volunteer.html"
-               class="sai-nav-link${activeClass(["volunteer.html"])}">
-              Volunteer Home
-            </a>
-            <button type="button"
-                    class="sai-nav-link sai-nav-button"
-                    data-sai-login>
-              Log-in
-            </button>
-          </nav>
-        </div>
-      `;
+  function buildAccount(session) {
+    const tools = document.createElement("div");
+    tools.className = "sai-shell-tools";
 
-      root.querySelector("[data-sai-login]")
-        ?.addEventListener("click",signIn);
-      return;
+    const account = document.createElement("div");
+    account.className = "sai-shell-account";
+
+    if (session?.user) {
+      const email = session.user.email || "Akun Google";
+
+      const desktop = document.createElement("div");
+      desktop.className = "sai-shell-account-copy";
+
+      const identity = document.createElement("strong");
+      identity.textContent = `Halo, ${email}`;
+
+      const logout = document.createElement("button");
+      logout.type = "button";
+      logout.className = "sai-shell-account-logout";
+      logout.textContent = "Keluar";
+      logout.addEventListener("click", () => signOut(logout, account));
+
+      desktop.append(identity, logout);
+
+      const mobile = document.createElement("div");
+      mobile.className = "sai-shell-account-mobile";
+
+      const mobileEmail = document.createElement("span");
+      mobileEmail.textContent = email;
+
+      const separator = document.createElement("span");
+      separator.textContent = "|";
+
+      const mobileLogout = document.createElement("button");
+      mobileLogout.type = "button";
+      mobileLogout.textContent = "Keluar";
+      mobileLogout.addEventListener("click", () => signOut(mobileLogout, account));
+
+      mobile.append(mobileEmail, separator, mobileLogout);
+      account.append(desktop, mobile);
+    } else {
+      const login = document.createElement("button");
+      login.type = "button";
+      login.className = "sai-shell-login";
+      login.textContent = "Masuk dengan Google";
+      login.addEventListener("click", () => signIn(login, account));
+      account.append(login);
     }
 
-    const [role,access,identity]=await Promise.all([
-      effectiveRole(),
-      metricsAccess(),
-      displayIdentity(session.user)
-    ]);
+    const status = document.createElement("span");
+    status.className = "sai-shell-auth-status";
+    status.setAttribute("role", "status");
+    status.hidden = true;
+    account.append(status);
 
-    const myMetricsLink=access?.can_access
-      ? `
-        <a href="my-metrics.html"
-           class="sai-nav-link${activeClass(["my-metrics.html"])}">
-          My Metrics
-        </a>
-      `
-      : "";
-
-    root.innerHTML=`
-      <div class="sai-global-nav-row">
-        <nav class="sai-global-nav-links"
-             aria-label="Main navigation">
-          <a href="index.html"
-             class="sai-nav-link${activeClass(["index.html",""])}">
-            Public Dashboard
-          </a>
-
-          <a href="volunteer.html"
-             class="sai-nav-link${activeClass(["volunteer.html"])}">
-            Volunteer Home
-          </a>
-
-          ${myMetricsLink}
-
-          ${adminMenu(role)}
-
-          <button type="button"
-                  class="sai-nav-link sai-nav-button sai-signout-button"
-                  data-sai-logout>
-            Sign out
-          </button>
-        </nav>
-
-        <div class="sai-global-user">
-          <strong>${esc(identity.name)}</strong>
-          <span>${esc(resolvedRoleLabel(role,access))}</span>
-        </div>
-      </div>
-    `;
-
-    root.querySelector("[data-sai-logout]")
-      ?.addEventListener("click",signOut);
+    tools.append(account);
+    return tools;
   }
 
-  watchHeaderLogoHeight();
+  function buildNavigation(session, role, access) {
+    const nav = document.createElement("nav");
+    nav.className = "sai-shell-nav";
+    nav.setAttribute("aria-label", "Navigasi Gerak SAI");
 
-  navDb.auth.onAuthStateChange((_event,session)=>{
+    nav.append(navLink("Public Dashboard", "index.html"));
+    nav.append(navLink("Volunteer Home", "volunteer.html"));
+
+    if (!session?.user) return nav;
+
+    if (access?.can_access) {
+      nav.append(navLink("My Metrics", "my-metrics.html"));
+    }
+
+    if (["admin", "editor", "reviewer"].includes(role)) {
+      nav.append(navLink("KPI Admin", "admin.html"));
+    }
+
+    if (["admin", "editor"].includes(role)) {
+      nav.append(navLink("Volunteer Admin", "volunteer-admin.html"));
+    }
+
+    return nav;
+  }
+
+  async function render(session) {
+    for (const node of header.querySelectorAll(
+      ":scope > .sai-shell-tools, :scope > .sai-shell-nav"
+    )) {
+      node.remove();
+    }
+
+    let role = null;
+    let access = { can_access: false };
+
+    if (session?.user) {
+      [role, access] = await Promise.all([
+        effectiveRole(),
+        metricsAccess()
+      ]);
+    }
+
+    header.append(
+      buildAccount(session),
+      buildNavigation(session, role, access)
+    );
+  }
+
+  installShellStyles();
+  installBrand();
+  hideLegacyHeaderUi();
+
+  navDb.auth.onAuthStateChange((_event, session) => {
     render(session);
   });
 
   navDb.auth.getSession()
-    .then(({data})=>render(data.session))
-    .catch(()=>render(null));
+    .then(({ data }) => render(data.session))
+    .catch(() => render(null));
 })();
