@@ -12,6 +12,7 @@
   --gerak-line: #DCE3EA;
   --gerak-muted: #66717D;
   --gerak-ink: #111820;
+  --gerak-logo-height: 46px;
 }
 
 /* Header container ------------------------------------------------------- */
@@ -74,26 +75,27 @@ body > header::before {
   color: inherit !important;
 }
 
+/* Preserve the artwork's intrinsic width/height ratio.
+   Header controls only the rendered height; width follows automatically. */
 .sai-shell-mark {
-  position: relative;
-  width: 52px;
-  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  height: var(--gerak-logo-height);
+  width: auto;
   flex: 0 0 auto;
-  overflow: hidden;
-  border-radius: 10px;
-  background: #FFFFFF;
+  overflow: visible;
+  background: transparent;
 }
 
-/* The current artwork contains the Gerak SAI wordmark below the symbol.
-   Crop the artwork in the shell so only the compact symbol is used here. */
 .sai-shell-mark img {
-  position: absolute;
-  top: -1px;
-  left: 50%;
-  width: 64px;
-  height: auto;
+  position: static;
+  display: block;
+  height: 100% !important;
+  width: auto !important;
+  max-height: 100% !important;
   max-width: none !important;
-  transform: translateX(-50%);
+  transform: none !important;
   object-fit: contain;
 }
 
@@ -243,11 +245,15 @@ body > header::before {
 
 /* Mobile shell — same structure as sai-wbs ----------------------------- */
 @media (max-width: 640px) {
+  :root {
+    --gerak-logo-height: 50px;
+  }
+
   .header-inner,
   .topbar-inner,
   .head {
     display: grid !important;
-    grid-template-columns: 64px minmax(0, 1fr) !important;
+    grid-template-columns: max-content minmax(0, 1fr) !important;
     align-items: center !important;
     gap: 4px 12px !important;
     padding-top: 14px !important;
@@ -261,14 +267,15 @@ body > header::before {
   .sai-shell-mark {
     grid-column: 1;
     grid-row: 1 / span 2;
-    width: 58px;
-    height: 54px;
+    height: var(--gerak-logo-height);
+    width: auto;
     align-self: center;
     justify-self: start;
   }
 
   .sai-shell-mark img {
-    width: 72px;
+    height: 100% !important;
+    width: auto !important;
   }
 
   .sai-shell-brand-copy {
