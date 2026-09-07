@@ -1,0 +1,349 @@
+/*
+ * Gerak SAI shared portal shell.
+ * Header/navigation intentionally mirrors the compact shell used in sai-wbs:
+ * compact product brand + account in the first row, role-aware navigation below.
+ */
+
+:root {
+  --gerak-primary: #15589A;
+  --gerak-primary-soft: #EEF4FB;
+  --gerak-accent: #7A9906;
+  --gerak-warm: #EF4F12;
+  --gerak-line: #DCE3EA;
+  --gerak-muted: #66717D;
+  --gerak-ink: #111820;
+}
+
+/* Header container ------------------------------------------------------- */
+.site-header,
+.topbar,
+.page-header,
+body > header {
+  position: relative !important;
+  padding: 0 !important;
+  background: #FFFFFF !important;
+  color: var(--gerak-ink) !important;
+  border-bottom: 1px solid var(--gerak-line) !important;
+  box-shadow: none !important;
+}
+
+.site-header::before,
+.topbar::before,
+.page-header::before,
+body > header::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--gerak-warm),
+    var(--gerak-primary) 48%,
+    var(--gerak-accent)
+  );
+}
+
+.header-inner,
+.topbar-inner,
+.head {
+  padding-top: 16px !important;
+  padding-bottom: 13px !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px 16px !important;
+}
+
+/* Keep legacy header controls in DOM for page scripts, but shell owns UI. */
+.sai-shell-legacy-header {
+  display: none !important;
+}
+
+/* Product brand --------------------------------------------------------- */
+.sai-shell-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  color: inherit !important;
+  text-decoration: none !important;
+}
+
+.sai-shell-brand:hover {
+  color: inherit !important;
+}
+
+.sai-shell-mark {
+  position: relative;
+  width: 52px;
+  height: 46px;
+  flex: 0 0 auto;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #FFFFFF;
+}
+
+/* The current artwork contains the Gerak SAI wordmark below the symbol.
+   Crop the artwork in the shell so only the compact symbol is used here. */
+.sai-shell-mark img {
+  position: absolute;
+  top: -1px;
+  left: 50%;
+  width: 64px;
+  height: auto;
+  max-width: none !important;
+  transform: translateX(-50%);
+  object-fit: contain;
+}
+
+.sai-shell-brand-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  line-height: 1.15;
+}
+
+.sai-shell-brand-copy strong {
+  color: var(--gerak-ink);
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -.02em;
+}
+
+.sai-shell-brand-copy small {
+  color: var(--gerak-muted);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+/* Account --------------------------------------------------------------- */
+.sai-shell-tools {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.sai-shell-account {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.sai-shell-account-copy {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  min-width: 0;
+  text-align: right;
+  line-height: 1.2;
+}
+
+.sai-shell-account-copy strong {
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--gerak-ink);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.sai-shell-account-logout,
+.sai-shell-account-mobile button {
+  min-height: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: var(--gerak-primary) !important;
+  box-shadow: none !important;
+  font-size: 11px !important;
+  font-weight: 750 !important;
+  line-height: 1.25 !important;
+  cursor: pointer;
+}
+
+.sai-shell-login {
+  min-height: 34px !important;
+  padding: 7px 11px !important;
+  border: 0 !important;
+  border-radius: 9px !important;
+  background: var(--gerak-primary) !important;
+  color: #FFFFFF !important;
+  box-shadow: none !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  white-space: nowrap;
+}
+
+.sai-shell-login:hover {
+  background: #104779 !important;
+}
+
+.sai-shell-account-mobile {
+  display: none;
+}
+
+.sai-shell-auth-status {
+  position: absolute;
+  top: calc(100% + 7px);
+  right: 0;
+  z-index: 1000;
+  width: max-content;
+  max-width: min(300px, 80vw);
+  padding: 7px 9px;
+  border: 1px solid #F2C7C7;
+  border-radius: 8px;
+  background: #FFF4F4;
+  color: #B00000;
+  font-size: 11px;
+  box-shadow: 0 6px 16px rgba(17,24,32,.08);
+}
+
+/* Navigation ------------------------------------------------------------ */
+.sai-shell-nav {
+  width: 100%;
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-top: 10px;
+  border-top: 1px solid var(--gerak-line);
+  scrollbar-width: thin;
+}
+
+.sai-shell-nav-link {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 7px 10px;
+  border: 0 !important;
+  border-radius: 9px;
+  background: transparent !important;
+  color: var(--gerak-muted) !important;
+  box-shadow: none !important;
+  font-size: 13px;
+  font-weight: 750 !important;
+  line-height: 1;
+  text-decoration: none !important;
+  white-space: nowrap;
+}
+
+.sai-shell-nav-link:hover,
+.sai-shell-nav-link[aria-current="page"] {
+  background: var(--gerak-primary-soft) !important;
+  color: var(--gerak-primary) !important;
+}
+
+/* Mobile shell — same structure as sai-wbs ----------------------------- */
+@media (max-width: 640px) {
+  .header-inner,
+  .topbar-inner,
+  .head {
+    display: grid !important;
+    grid-template-columns: 64px minmax(0, 1fr) !important;
+    align-items: center !important;
+    gap: 4px 12px !important;
+    padding-top: 14px !important;
+    padding-bottom: 10px !important;
+  }
+
+  .sai-shell-brand {
+    display: contents;
+  }
+
+  .sai-shell-mark {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    width: 58px;
+    height: 54px;
+    align-self: center;
+    justify-self: start;
+  }
+
+  .sai-shell-mark img {
+    width: 72px;
+  }
+
+  .sai-shell-brand-copy {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: end;
+    min-width: 0;
+    text-align: left;
+  }
+
+  .sai-shell-brand-copy strong {
+    font-size: 18px;
+  }
+
+  .sai-shell-brand-copy small {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  .sai-shell-tools {
+    grid-column: 2;
+    grid-row: 2;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    justify-content: flex-start;
+    align-self: start;
+    text-align: left;
+  }
+
+  .sai-shell-account {
+    width: 100%;
+    justify-content: flex-start;
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .sai-shell-account-copy {
+    display: none;
+  }
+
+  .sai-shell-account-mobile {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 4px;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    color: var(--gerak-muted);
+    text-align: left;
+    font-size: 12px;
+    line-height: 1.25;
+  }
+
+  .sai-shell-account-mobile span:first-child {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .sai-shell-login {
+    justify-self: start;
+  }
+
+  .sai-shell-nav {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    margin-top: 8px;
+  }
+}
