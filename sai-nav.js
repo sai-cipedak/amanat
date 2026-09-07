@@ -1,4 +1,8 @@
 (() => {
+  // Prevent duplicate shell initialization if this script is evaluated more than once.
+  if (window.__GERAK_SAI_SHELL_INITIALIZED__) return;
+  window.__GERAK_SAI_SHELL_INITIALIZED__ = true;
+
   if (typeof supabase === "undefined") return;
   if (typeof SUPABASE_URL === "undefined" ||
       typeof SUPABASE_PUBLISHABLE_KEY === "undefined") return;
@@ -25,12 +29,14 @@
   const currentPage =
     (location.pathname.split("/").pop() || "index.html").toLowerCase();
 
+  let renderGeneration = 0;
+
   function installShellStyles() {
     if (document.querySelector("link[data-sai-shell]")) return;
 
     const style = document.createElement("link");
     style.rel = "stylesheet";
-    style.href = "sai-shell.css?v=20260907-1";
+    style.href = "sai-shell.css?v=20260907-2";
     style.dataset.saiShell = "1";
     document.head.append(style);
   }
@@ -40,6 +46,9 @@
   }
 
   function installBrand() {
+    // If another evaluation already replaced the legacy brand, do nothing.
+    if (header.querySelector(":scope > .sai-shell-brand")) return;
+
     const existing = header.querySelector(".sai-brand-block");
     if (!existing) return;
 
@@ -52,7 +61,9 @@
     mark.className = "sai-shell-mark";
 
     const logo = document.createElement("img");
-    logo.src = "sai-logo-web.png?v=1.0.3";
+    // Blob changed in the repository; version is tied to the current image blob
+    // so GitHub Pages/browser cache cannot keep serving the previous artwork.
+    logo.src = "sai-logo-web.png?v=1142d263";
     logo.alt = "";
     logo.setAttribute("aria-hidden", "true");
     mark.append(logo);
@@ -76,6 +87,14 @@
       ".header-actions, .topbar-actions, .head-actions"
     )) {
       node.classList.add("sai-shell-legacy-header");
+    }
+  }
+
+  function removeShellUi() {
+    for (const node of header.querySelectorAll(
+      ":scope > .sai-shell-tools, :scope > .sai-shell-nav"
+    )) {
+      node.remove();
     }
   }
 
@@ -246,11 +265,10 @@
   }
 
   async function render(session) {
-    for (const node of header.querySelectorAll(
-      ":scope > .sai-shell-tools, :scope > .sai-shell-nav"
-    )) {
-      node.remove();
-    }
+    const generation = ++renderGeneration;
+
+    // Clear immediately so a genuine auth-state transition never leaves stale UI.
+    removeShellUi();
 
     let role = null;
     let access = { can_access: false };
@@ -261,6 +279,14 @@
         metricsAccess()
       ]);
     }
+
+    // Supabase can emit several auth events close together. Only the newest
+    // render is allowed to commit UI after its async role/access lookups finish.
+    if (generation !== renderGeneration) return;
+
+    // Clean once more immediately before commit. This also makes rendering
+    // idempotent if another script/event touched the shell in the meantime.
+    removeShellUi();
 
     header.append(
       buildAccount(session),
