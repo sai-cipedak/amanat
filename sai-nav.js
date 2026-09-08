@@ -22,8 +22,7 @@
     "index.html": "Amanat Muskom 2026 · KPI Tracker",
     "volunteer.html": "Volunteer Marketplace",
     "my-metrics.html": "Metric Workspace",
-    "admin.html": "KPI Admin",
-    "volunteer-admin.html": "Volunteer Admin"
+    "admin.html": "KPI Admin"
   };
 
   const currentPage =
@@ -43,13 +42,28 @@
 
   function installPageExtensions() {
     if (currentPage !== "admin.html") return;
-    if (document.querySelector("script[data-owner-governance]")) return;
 
-    const script = document.createElement("script");
-    script.src = "owner-governance.js?v=20260908-1";
-    script.async = false;
-    script.dataset.ownerGovernance = "1";
-    document.head.append(script);
+    const extensions = [
+      {
+        src: "owner-governance.js?v=20260908-1",
+        marker: "ownerGovernance",
+        selector: "script[data-owner-governance]"
+      },
+      {
+        src: "volunteer-governance.js?v=20260908-1",
+        marker: "volunteerGovernance",
+        selector: "script[data-volunteer-governance]"
+      }
+    ];
+
+    for (const extension of extensions) {
+      if (document.querySelector(extension.selector)) continue;
+      const script = document.createElement("script");
+      script.src = extension.src;
+      script.async = false;
+      script.dataset[extension.marker] = "1";
+      document.head.append(script);
+    }
   }
 
   function pageContext() {
@@ -110,67 +124,59 @@
   }
 
   function retireEditorUi() {
-    if (currentPage === "admin.html") {
-      const roleSelect = document.getElementById("new-user-role");
-      if (roleSelect) {
-        roleSelect.innerHTML = '<option value="admin">Admin</option>';
-        roleSelect.value = "admin";
-      }
+    if (currentPage !== "admin.html") return;
 
-      const addUserForm = document.getElementById("add-user-form");
-      if (addUserForm && roleSelect) {
-        addUserForm.addEventListener("submit", () => {
-          roleSelect.value = "admin";
-        }, true);
-      }
-
-      const accessDenied = document.getElementById("access-denied");
-      const accessCopy = accessDenied?.querySelector(
-        "p:not(.eyebrow):not(.muted)"
-      );
-      if (accessCopy) {
-        accessCopy.textContent =
-          "Akses KPI Admin diberikan kepada Admin atau Cluster Lead yang aktif sebagai scoped Reviewer.";
-      }
-
-      const updateGuidance = document.querySelector(".admin-role-guidance");
-      if (updateGuidance) {
-        updateGuidance.textContent =
-          "Admin dapat membuat draft sebagai global override. Metric Owner menggunakan My Metrics; Cluster Lead menetapkan Metric Owner dan melakukan review dalam cluster scope.";
-      }
-
-      const userFormCopy = document.querySelector(".user-form-card .muted");
-      if (userFormCopy) {
-        userFormCopy.textContent =
-          "User Management hanya untuk Admin. Cluster Lead dikelola melalui Cluster Governance, sedangkan Metric Owner ditetapkan oleh Admin atau Cluster Lead sesuai scope cluster.";
-      }
-
-      const userList = document.getElementById("user-list");
-      if (userList) {
-        const sanitizeRoleSelectors = () => {
-          for (const select of userList.querySelectorAll("select.user-role-select")) {
-            for (const option of [...select.options]) {
-              if (option.value !== "admin") option.remove();
-            }
-            select.value = "admin";
-            select.disabled = true;
-          }
-        };
-
-        sanitizeRoleSelectors();
-        new MutationObserver(sanitizeRoleSelectors).observe(userList, {
-          childList: true,
-          subtree: true
-        });
-      }
+    const roleSelect = document.getElementById("new-user-role");
+    if (roleSelect) {
+      roleSelect.innerHTML = '<option value="admin">Admin</option>';
+      roleSelect.value = "admin";
     }
 
-    if (currentPage === "volunteer-admin.html") {
-      const loginCopy = document.querySelector("#login-panel .muted");
-      if (loginCopy) {
-        loginCopy.innerHTML =
-          'Volunteer operations hanya tersedia untuk Admin. Gunakan menu <strong>Log-in</strong> di kanan atas.';
-      }
+    const addUserForm = document.getElementById("add-user-form");
+    if (addUserForm && roleSelect) {
+      addUserForm.addEventListener("submit", () => {
+        roleSelect.value = "admin";
+      }, true);
+    }
+
+    const accessDenied = document.getElementById("access-denied");
+    const accessCopy = accessDenied?.querySelector(
+      "p:not(.eyebrow):not(.muted)"
+    );
+    if (accessCopy) {
+      accessCopy.textContent =
+        "Akses KPI Admin diberikan kepada Admin atau Cluster Lead yang aktif sebagai scoped Reviewer.";
+    }
+
+    const updateGuidance = document.querySelector(".admin-role-guidance");
+    if (updateGuidance) {
+      updateGuidance.textContent =
+        "Admin dapat membuat draft sebagai global override. Metric Owner menggunakan My Metrics; Cluster Lead menetapkan Metric Owner dan melakukan review dalam cluster scope.";
+    }
+
+    const userFormCopy = document.querySelector(".user-form-card .muted");
+    if (userFormCopy) {
+      userFormCopy.textContent =
+        "User Management hanya untuk Admin. Cluster Lead dikelola melalui Cluster Governance, sedangkan Metric Owner ditetapkan oleh Admin atau Cluster Lead sesuai scope cluster.";
+    }
+
+    const userList = document.getElementById("user-list");
+    if (userList) {
+      const sanitizeRoleSelectors = () => {
+        for (const select of userList.querySelectorAll("select.user-role-select")) {
+          for (const option of [...select.options]) {
+            if (option.value !== "admin") option.remove();
+          }
+          select.value = "admin";
+          select.disabled = true;
+        }
+      };
+
+      sanitizeRoleSelectors();
+      new MutationObserver(sanitizeRoleSelectors).observe(userList, {
+        childList: true,
+        subtree: true
+      });
     }
   }
 
@@ -331,10 +337,6 @@
 
     if (["admin", "reviewer"].includes(role)) {
       nav.append(navLink("KPI Admin", "admin.html"));
-    }
-
-    if (role === "admin") {
-      nav.append(navLink("Volunteer Admin", "volunteer-admin.html"));
     }
 
     return nav;
