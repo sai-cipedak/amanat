@@ -98,6 +98,71 @@
     }
   }
 
+  function retireEditorUi() {
+    if (currentPage === "admin.html") {
+      const roleSelect = document.getElementById("new-user-role");
+      if (roleSelect) {
+        roleSelect.innerHTML = '<option value="admin">Admin</option>';
+        roleSelect.value = "admin";
+      }
+
+      const addUserForm = document.getElementById("add-user-form");
+      if (addUserForm && roleSelect) {
+        addUserForm.addEventListener("submit", () => {
+          roleSelect.value = "admin";
+        }, true);
+      }
+
+      const accessDenied = document.getElementById("access-denied");
+      const accessCopy = accessDenied?.querySelector(
+        "p:not(.eyebrow):not(.muted)"
+      );
+      if (accessCopy) {
+        accessCopy.textContent =
+          "Akses KPI Admin diberikan kepada Admin atau Cluster Lead yang aktif sebagai scoped Reviewer.";
+      }
+
+      const updateGuidance = document.querySelector(".admin-role-guidance");
+      if (updateGuidance) {
+        updateGuidance.textContent =
+          "Admin dapat membuat draft sebagai global override. Metric Owner menggunakan My Metrics; Cluster Lead fokus pada review.";
+      }
+
+      const userFormCopy = document.querySelector(".user-form-card .muted");
+      if (userFormCopy) {
+        userFormCopy.textContent =
+          "User Management hanya untuk Admin. Cluster Lead dikelola melalui Cluster Governance, sedangkan Metric Owner melalui assignment metric.";
+      }
+
+      const userList = document.getElementById("user-list");
+      if (userList) {
+        const sanitizeRoleSelectors = () => {
+          for (const select of userList.querySelectorAll("select.user-role-select")) {
+            for (const option of [...select.options]) {
+              if (option.value !== "admin") option.remove();
+            }
+            select.value = "admin";
+            select.disabled = true;
+          }
+        };
+
+        sanitizeRoleSelectors();
+        new MutationObserver(sanitizeRoleSelectors).observe(userList, {
+          childList: true,
+          subtree: true
+        });
+      }
+    }
+
+    if (currentPage === "volunteer-admin.html") {
+      const loginCopy = document.querySelector("#login-panel .muted");
+      if (loginCopy) {
+        loginCopy.innerHTML =
+          'Volunteer operations hanya tersedia untuk Admin. Gunakan menu <strong>Log-in</strong> di kanan atas.';
+      }
+    }
+  }
+
   function isPageActive(href) {
     return currentPage === href ||
       (currentPage === "" && href === "index.html");
@@ -253,11 +318,11 @@
       nav.append(navLink("My Metrics", "my-metrics.html"));
     }
 
-    if (["admin", "editor", "reviewer"].includes(role)) {
+    if (["admin", "reviewer"].includes(role)) {
       nav.append(navLink("KPI Admin", "admin.html"));
     }
 
-    if (["admin", "editor"].includes(role)) {
+    if (role === "admin") {
       nav.append(navLink("Volunteer Admin", "volunteer-admin.html"));
     }
 
@@ -297,6 +362,7 @@
   installShellStyles();
   installBrand();
   hideLegacyHeaderUi();
+  retireEditorUi();
 
   navDb.auth.onAuthStateChange((_event, session) => {
     render(session);
