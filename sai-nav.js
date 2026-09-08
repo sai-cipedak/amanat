@@ -41,6 +41,17 @@
     document.head.append(style);
   }
 
+  function installPageExtensions() {
+    if (currentPage !== "admin.html") return;
+    if (document.querySelector("script[data-owner-governance]")) return;
+
+    const script = document.createElement("script");
+    script.src = "owner-governance.js?v=20260908-1";
+    script.async = false;
+    script.dataset.ownerGovernance = "1";
+    document.head.append(script);
+  }
+
   function pageContext() {
     return PAGE_CONTEXT[currentPage] || "KPI Tracker";
   }
@@ -125,13 +136,13 @@
       const updateGuidance = document.querySelector(".admin-role-guidance");
       if (updateGuidance) {
         updateGuidance.textContent =
-          "Admin dapat membuat draft sebagai global override. Metric Owner menggunakan My Metrics; Cluster Lead fokus pada review.";
+          "Admin dapat membuat draft sebagai global override. Metric Owner menggunakan My Metrics; Cluster Lead menetapkan Metric Owner dan melakukan review dalam cluster scope.";
       }
 
       const userFormCopy = document.querySelector(".user-form-card .muted");
       if (userFormCopy) {
         userFormCopy.textContent =
-          "User Management hanya untuk Admin. Cluster Lead dikelola melalui Cluster Governance, sedangkan Metric Owner melalui assignment metric.";
+          "User Management hanya untuk Admin. Cluster Lead dikelola melalui Cluster Governance, sedangkan Metric Owner ditetapkan oleh Admin atau Cluster Lead sesuai scope cluster.";
       }
 
       const userList = document.getElementById("user-list");
@@ -363,6 +374,7 @@
   installBrand();
   hideLegacyHeaderUi();
   retireEditorUi();
+  installPageExtensions();
 
   navDb.auth.onAuthStateChange((_event, session) => {
     render(session);
