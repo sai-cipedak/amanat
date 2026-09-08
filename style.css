@@ -53,6 +53,21 @@ button {
   gap: 24px;
 }
 
+/* First-paint guard -----------------------------------------------------
+   The legacy brand image exists in HTML before sai-nav.js replaces the
+   header with the shared Gerak SAI shell. Give it the same safe rendered
+   height as the final shell so the intrinsic PNG dimensions can never flash
+   full-width while JS/Supabase is still loading. Higher specificity keeps
+   this guard effective even though sai-theme.css loads after this file. */
+.site-header .sai-brand-logo {
+  display: block;
+  height: 46px !important;
+  width: auto !important;
+  max-height: 46px !important;
+  max-width: none !important;
+  object-fit: contain;
+}
+
 .eyebrow {
   margin: 0 0 6px;
   font-size: 12px;
@@ -485,6 +500,11 @@ footer .shell {
 
   .site-header {
     padding: 30px 0;
+  }
+
+  .site-header .sai-brand-logo {
+    height: 50px !important;
+    max-height: 50px !important;
   }
 
   .header-inner,
