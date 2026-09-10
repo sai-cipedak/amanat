@@ -18,13 +18,6 @@
     SUPABASE_PUBLISHABLE_KEY
   );
 
-  const PAGE_CONTEXT = {
-    "index.html": "Amanat Muskom 2026 · KPI Tracker",
-    "volunteer.html": "Volunteer Marketplace",
-    "my-metrics.html": "Metric Workspace",
-    "admin.html": "KPI Admin"
-  };
-
   const currentPage =
     (location.pathname.split("/").pop() || "index.html").toLowerCase();
 
@@ -66,10 +59,6 @@
     }
   }
 
-  function pageContext() {
-    return PAGE_CONTEXT[currentPage] || "KPI Tracker";
-  }
-
   function installBrand() {
     // If another evaluation already replaced the legacy brand, do nothing.
     if (header.querySelector(":scope > .sai-shell-brand")) return;
@@ -99,10 +88,10 @@
     const title = document.createElement("strong");
     title.textContent = "Gerak SAI";
 
-    const context = document.createElement("small");
-    context.textContent = pageContext();
+    const descriptor = document.createElement("small");
+    descriptor.textContent = "Gerbang Kolaborasi Komunitas SAI";
 
-    words.append(title, context);
+    words.append(title, descriptor);
     brand.append(mark, words);
     existing.replaceWith(brand);
   }
