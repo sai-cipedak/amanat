@@ -65,8 +65,7 @@
 
   function currentRows(metricId) {
     return state.ownership.filter(row =>
-      row.metric_id === metricId &&
-      ['pending', 'active'].includes(row.assignment_status)
+      row.metric_id === metricId && ['pending', 'active'].includes(row.assignment_status)
     );
   }
 
@@ -115,9 +114,7 @@
           <span class="owner-governance-badge ${owner.owner_role === 'supporting_owner' ? 'supporting' : ''}">
             ${owner.owner_role === 'primary_owner' ? 'Primary Owner' : 'Supporting Owner'}
           </span>
-          <span class="owner-governance-badge ${owner.assignment_status === 'pending' ? 'pending' : ''}">
-            ${esc(owner.assignment_status)}
-          </span>
+          <span class="owner-governance-badge ${owner.assignment_status === 'pending' ? 'pending' : ''}">${esc(owner.assignment_status)}</span>
           ${withEndButtons ? `<button type="button" class="owner-governance-end" data-end-owner="${owner.assignment_id}">End</button>` : ''}
         </div>
       </div>
@@ -141,17 +138,13 @@
     panel.hidden = true;
     panel.innerHTML = `
       <div class="owner-governance-heading">
-        <div>
-          <p class="eyebrow">ACCOUNTABILITY</p>
-          <h2>Metric Owner</h2>
-        </div>
+        <div><p class="eyebrow">ACCOUNTABILITY</p><h2>Metric Owner</h2></div>
         <span id="owner-governance-role" class="owner-governance-badge"></span>
       </div>
       <p id="owner-governance-note" class="owner-governance-note"></p>
       <div id="owner-governance-current" class="owner-governance-current"></div>
       <button id="owner-governance-manage" type="button" class="owner-governance-manage">Manage Metric Owner</button>
     `;
-
     overview.insertAdjacentElement('afterend', panel);
     panel.querySelector('#owner-governance-manage').addEventListener('click', openModal);
   }
@@ -165,30 +158,15 @@
     backdrop.innerHTML = `
       <section class="owner-governance-modal" role="dialog" aria-modal="true" aria-labelledby="owner-governance-modal-title">
         <div class="owner-governance-modal-head">
-          <div>
-            <p class="eyebrow">ACCOUNTABILITY</p>
-            <h2 id="owner-governance-modal-title">Manage Metric Owner</h2>
-          </div>
+          <div><p class="eyebrow">ACCOUNTABILITY</p><h2 id="owner-governance-modal-title">Manage Metric Owner</h2></div>
           <button id="owner-governance-close" class="owner-governance-close" type="button" aria-label="Close">×</button>
         </div>
         <div id="owner-governance-context" class="owner-governance-context"></div>
         <div id="owner-governance-modal-current" class="owner-governance-current"></div>
         <form id="owner-governance-form" class="owner-governance-form">
-          <label>
-            <span>Owner Role *</span>
-            <select id="owner-governance-owner-role" required>
-              <option value="primary_owner">Primary Owner</option>
-              <option value="supporting_owner">Supporting Owner</option>
-            </select>
-          </label>
-          <label>
-            <span>Display Name</span>
-            <input id="owner-governance-display-name" type="text" placeholder="Nama Metric Owner" />
-          </label>
-          <label class="wide">
-            <span>Google / Login Email *</span>
-            <input id="owner-governance-email" type="email" required placeholder="nama@gmail.com" />
-          </label>
+          <label><span>Owner Role *</span><select id="owner-governance-owner-role" required><option value="primary_owner">Primary Owner</option><option value="supporting_owner">Supporting Owner</option></select></label>
+          <label><span>Display Name</span><input id="owner-governance-display-name" type="text" placeholder="Nama Metric Owner" /></label>
+          <label class="wide"><span>Google / Login Email *</span><input id="owner-governance-email" type="email" required placeholder="nama@gmail.com" /></label>
           <div class="owner-governance-form-actions">
             <span id="owner-governance-message" class="owner-governance-message"></span>
             <button id="owner-governance-submit" class="owner-governance-manage" type="submit">Assign / Change Owner</button>
@@ -196,12 +174,9 @@
         </form>
       </section>
     `;
-
     document.body.append(backdrop);
     backdrop.querySelector('#owner-governance-close').addEventListener('click', closeModal);
-    backdrop.addEventListener('click', event => {
-      if (event.target === backdrop) closeModal();
-    });
+    backdrop.addEventListener('click', event => { if (event.target === backdrop) closeModal(); });
     backdrop.querySelector('#owner-governance-form').addEventListener('submit', assignOwner);
   }
 
@@ -219,7 +194,6 @@
 
     const { metricId } = selectedMetricContext();
     state.metricId = metricId || null;
-
     if (!state.metricId || !['admin', 'reviewer'].includes(state.role)) {
       panel.hidden = true;
       return;
@@ -227,18 +201,15 @@
 
     panel.hidden = false;
     document.getElementById('owner-governance-role').textContent = roleLabel();
-    document.getElementById('owner-governance-note').textContent =
-      state.role === 'admin'
-        ? 'Admin dapat menetapkan owner pada semua metric sebagai global governance override.'
-        : 'Sebagai Cluster Lead, kamu dapat menetapkan Primary / Supporting Metric Owner hanya untuk metric dalam cluster yang kamu lead.';
-
+    document.getElementById('owner-governance-note').textContent = state.role === 'admin'
+      ? 'Admin dapat menetapkan owner pada semua metric sebagai global governance override.'
+      : 'Sebagai Cluster Lead, kamu dapat menetapkan Primary / Supporting Metric Owner hanya untuk metric dalam cluster yang kamu lead.';
     renderCurrentList(document.getElementById('owner-governance-current'), state.metricId, false);
   }
 
   function openModal() {
     if (!state.metricId) return;
     ensureModal();
-    const modal = document.getElementById('owner-governance-modal');
     const { metricId, kpiText, metricName } = selectedMetricContext();
     if (!metricId) return;
 
@@ -251,12 +222,23 @@
     document.getElementById('owner-governance-email').value = '';
     renderCurrentList(document.getElementById('owner-governance-modal-current'), metricId, true);
     setMessage('');
-    modal.hidden = false;
+    document.getElementById('owner-governance-modal').hidden = false;
   }
 
   function closeModal() {
     const modal = document.getElementById('owner-governance-modal');
     if (modal) modal.hidden = true;
+  }
+
+  function changeRequiresReason(metricId, email, role) {
+    const rows = currentRows(metricId);
+    const normalized = email.toLowerCase();
+    const sameOwner = rows.find(row => String(row.owner_email || '').toLowerCase() === normalized);
+    const currentPrimary = rows.find(row => row.owner_role === 'primary_owner');
+
+    if (sameOwner && sameOwner.owner_role !== role) return true;
+    return role === 'primary_owner' && currentPrimary &&
+      String(currentPrimary.owner_email || '').toLowerCase() !== normalized;
   }
 
   async function assignOwner(event) {
@@ -268,20 +250,29 @@
     const email = document.getElementById('owner-governance-email').value.trim();
     const displayName = document.getElementById('owner-governance-display-name').value.trim();
     const role = document.getElementById('owner-governance-owner-role').value;
-
     if (!email) {
       setMessage('Email owner wajib diisi.', 'error');
       return;
     }
 
+    let reason = null;
+    if (changeRequiresReason(metricId, email, role)) {
+      reason = window.prompt('Alasan perubahan Metric Owner:')?.trim() || '';
+      if (!reason) {
+        setMessage('Perubahan Metric Owner dibatalkan karena alasan wajib diisi.', 'error');
+        return;
+      }
+    }
+
     try {
       submit.disabled = true;
       setMessage('Saving…');
-      const { error } = await db.rpc('assign_metric_owner', {
+      const { error } = await db.rpc('assign_metric_owner_v2', {
         p_metric_id: metricId,
         p_owner_email: email,
         p_display_name: displayName || null,
-        p_owner_role: role
+        p_owner_role: role,
+        p_reason: reason
       });
       if (error) throw error;
 
@@ -290,7 +281,7 @@
       renderCurrentList(document.getElementById('owner-governance-modal-current'), metricId, true);
       document.getElementById('owner-governance-display-name').value = '';
       document.getElementById('owner-governance-email').value = '';
-      setMessage('Metric Owner berhasil di-assign.', 'success');
+      setMessage(reason ? 'Metric Owner berhasil diubah dan alasan tersimpan.' : 'Metric Owner berhasil di-assign.', 'success');
     } catch (error) {
       console.error(error);
       setMessage(error.message || 'Assignment gagal.', 'error');
@@ -304,18 +295,25 @@
     if (!owner) return;
     if (!window.confirm(`End assignment untuk ${owner.display_name || owner.owner_email}?`)) return;
 
+    const reason = window.prompt('Alasan mengakhiri Metric Owner assignment:')?.trim() || '';
+    if (!reason) {
+      setMessage('Assignment tidak diakhiri karena alasan wajib diisi.', 'error');
+      return;
+    }
+
     try {
       button.disabled = true;
       setMessage('Saving…');
-      const { error } = await db.rpc('end_metric_owner_assignment', {
-        p_assignment_id: assignmentId
+      const { error } = await db.rpc('end_metric_owner_assignment_v2', {
+        p_assignment_id: assignmentId,
+        p_reason: reason
       });
       if (error) throw error;
 
       await loadOwnership();
       renderPanel();
       renderCurrentList(document.getElementById('owner-governance-modal-current'), state.metricId, true);
-      setMessage('Assignment berhasil diakhiri.', 'success');
+      setMessage('Assignment berhasil diakhiri dan alasan tersimpan.', 'success');
     } catch (error) {
       console.error(error);
       setMessage(error.message || 'Gagal mengakhiri assignment.', 'error');
@@ -327,14 +325,12 @@
   function cleanLegacyGovernanceCopy() {
     const updateGuidance = document.querySelector('.admin-role-guidance');
     if (updateGuidance) {
-      updateGuidance.textContent =
-        'Admin dapat membuat draft sebagai global override. Metric Owner mengirim update dari My Metrics; Cluster Lead menetapkan Metric Owner dan melakukan review dalam cluster scope.';
+      updateGuidance.textContent = 'Admin dapat membuat draft sebagai global override. Metric Owner mengirim update dari My Metrics; Cluster Lead menetapkan Metric Owner dan melakukan review progress serta kecukupan evidence dalam cluster scope.';
     }
   }
 
   async function init(session) {
     if (!session?.user || state.initialized) return;
-
     try {
       await resolveRole();
       if (!['admin', 'reviewer'].includes(state.role)) return;
@@ -347,16 +343,11 @@
       cleanLegacyGovernanceCopy();
       renderPanel();
 
-      const metricSelect = document.getElementById('metric-select');
-      metricSelect?.addEventListener('change', () => {
-        setTimeout(renderPanel, 0);
-      });
-
+      document.getElementById('metric-select')?.addEventListener('change', () => setTimeout(renderPanel, 0));
       const workspace = document.getElementById('metric-workspace');
       if (workspace) {
-        new MutationObserver(() => {
-          if (!workspace.hidden) renderPanel();
-        }).observe(workspace, { attributes: true, attributeFilter: ['hidden'] });
+        new MutationObserver(() => { if (!workspace.hidden) renderPanel(); })
+          .observe(workspace, { attributes: true, attributeFilter: ['hidden'] });
       }
     } catch (error) {
       console.error('Metric Owner governance init failed:', error);
