@@ -34,20 +34,30 @@
   }
 
   function installPageExtensions() {
-    if (currentPage !== "admin.html") return;
+    const extensions = [];
 
-    const extensions = [
-      {
-        src: "owner-governance.js?v=20260908-1",
-        marker: "ownerGovernance",
-        selector: "script[data-owner-governance]"
-      },
-      {
-        src: "volunteer-governance.js?v=20260908-1",
-        marker: "volunteerGovernance",
-        selector: "script[data-volunteer-governance]"
-      }
-    ];
+    if (currentPage === "admin.html") {
+      extensions.push(
+        {
+          src: "owner-governance.js?v=20260911-1",
+          marker: "ownerGovernance",
+          selector: "script[data-owner-governance]"
+        },
+        {
+          src: "volunteer-governance.js?v=20260908-1",
+          marker: "volunteerGovernance",
+          selector: "script[data-volunteer-governance]"
+        }
+      );
+    }
+
+    if (currentPage === "my-metrics.html") {
+      extensions.push({
+        src: "my-metrics-governance.js?v=20260911-1",
+        marker: "myMetricsGovernance",
+        selector: "script[data-my-metrics-governance]"
+      });
+    }
 
     for (const extension of extensions) {
       if (document.querySelector(extension.selector)) continue;
