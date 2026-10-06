@@ -1192,6 +1192,52 @@ function renderModeTags(modes) {
   `).join("");
 }
 
+function renderOwnerTags(owners) {
+  if (!Array.isArray(owners) || !owners.length) {
+    return `<span class="muted">Belum ada Metric Owner.</span>`;
+  }
+
+  return owners.map(owner => {
+    const role =
+      owner.role === "primary_owner"
+        ? "Primary"
+        : owner.role === "supporting_owner"
+          ? "Supporting"
+          : owner.role || "Owner";
+
+    const pending =
+      owner.status === "pending" ? " · Pending" : "";
+
+    return `
+      <span class="tag">
+        ${esc(role)} · ${esc(owner.name || "Unnamed")}${esc(pending)}
+      </span>
+    `;
+  }).join("");
+}
+
+function renderActiveVolunteerTags(volunteers) {
+  if (!Array.isArray(volunteers) || !volunteers.length) {
+    return `<span class="muted">Belum ada active volunteer.</span>`;
+  }
+
+  return volunteers.map(volunteer => {
+    const modes = Array.isArray(volunteer.contribution_modes)
+      ? volunteer.contribution_modes
+      : [];
+
+    const modeLabel = modes.length
+      ? ` · ${modes.map(mode => MODE_LABELS[mode] || mode).join(", ")}`
+      : "";
+
+    return `
+      <span class="tag">
+        ${esc(volunteer.name || "Unnamed")}${esc(modeLabel)}
+      </span>
+    `;
+  }).join("");
+}
+
 function renderOpportunity(row) {
   if (!row.opportunity_id) {
     return `
@@ -2493,6 +2539,13 @@ function renderRows() {
 
           <div class="metric-column">
             <div class="metric-section">
+              <strong>Metric Owners</strong>
+              <div class="tag-row">
+                ${renderOwnerTags(row.owners)}
+              </div>
+            </div>
+
+            <div class="metric-section">
               <strong>Volunteer Opportunity</strong>
               ${renderOpportunity(row)}
             </div>
@@ -2512,6 +2565,13 @@ function renderRows() {
                   <span>Active</span>
                   <strong>${Number(row.active_contributors || 0)}</strong>
                 </div>
+              </div>
+            </div>
+
+            <div class="metric-section">
+              <strong>Active Volunteers</strong>
+              <div class="tag-row">
+                ${renderActiveVolunteerTags(row.active_volunteers)}
               </div>
             </div>
 
